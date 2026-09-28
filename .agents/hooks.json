@@ -1,0 +1,25 @@
+{
+  "agent-capture": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python -u ../.cursor/hooks/capture.py --event PreInvocation",
+        "timeout": 30
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "python -u ../.cursor/hooks/capture.py --event PostInvocation",
+        "timeout": 30
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python -u ../.cursor/hooks/capture.py --event Stop",
+        "timeout": 30
+      }
+    ]
+  }
+}

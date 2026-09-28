@@ -1,3 +1,7 @@
+node_modules/
+dist/
+
 .cursor/hooks/capture-state.json
 .cursor/hooks/last-payload.json
+.cursor/hooks/last-debug.json
 .cursor/hooks/capture-errors.log

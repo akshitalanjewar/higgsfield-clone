@@ -3,20 +3,26 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "python .cursor/hooks/capture.py",
-        "timeout": 15
+        "command": ".cursor/hooks/capture.cmd --event sessionStart",
+        "timeout": 20
       }
     ],
     "beforeSubmitPrompt": [
       {
-        "command": "python .cursor/hooks/capture.py",
-        "timeout": 15
+        "command": ".cursor/hooks/capture.cmd --event beforeSubmitPrompt",
+        "timeout": 20
       }
     ],
     "afterAgentResponse": [
       {
-        "command": "python .cursor/hooks/capture.py",
-        "timeout": 15
+        "command": ".cursor/hooks/capture.cmd --event afterAgentResponse",
+        "timeout": 20
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/capture.cmd --event stop",
+        "timeout": 20
       }
     ]
   }
