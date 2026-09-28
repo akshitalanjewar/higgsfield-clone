@@ -1,0 +1,13 @@
+---
+description: Automatic agent prompt/response capture for the 8x assignment
+alwaysApply: true
+---
+
+# Agent capture
+
+Cursor project hooks in `.cursor/hooks.json` append every user prompt and every final agent response to `.agent-logs/`.
+
+- Do not add `.agent-logs/` to `.gitignore`.
+- Do not edit, tidy, summarise, or delete log entries after they are written.
+- Do not log thinking, tool calls, diffs, or retries.
+- Do not start product work until `CAPTURE-TEST.md` exists and both canaries are in the logs.
