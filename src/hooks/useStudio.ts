@@ -73,7 +73,7 @@ function buildGenerationPrompt(
       : '',
 
     params.enhance
-      ? 'Highly detailed, polished professional image, refined lighting and composition'
+      ? 'Highly detailed, sharp, polished professional image, refined lighting and composition'
       : '',
   ]
     .filter(Boolean)
@@ -81,75 +81,134 @@ function buildGenerationPrompt(
 }
 
 /* ============================================================
-   IMAGE URL
+   ASPECT RATIO → IMAGE SIZE
    ============================================================ */
 
-function buildImageUrl(
+function getDimensions(
+  aspectRatio: AspectRatio
+): {
+  width: number;
+  height: number;
+} {
+  switch (aspectRatio) {
+    case '9:16':
+      return {
+        width: 768,
+        height: 1365,
+      };
+
+    case '3:4':
+      return {
+        width: 1024,
+        height: 1365,
+      };
+
+    case '1:1':
+      return {
+        width: 1024,
+        height: 1024,
+      };
+
+    case '4:3':
+      return {
+        width: 1365,
+        height: 1024,
+      };
+
+    case '21:9':
+      return {
+        width: 1536,
+        height: 659,
+      };
+
+    case '16:9':
+    default:
+      return {
+        width: 1365,
+        height: 768,
+      };
+  }
+}
+
+/* ============================================================
+   GEMINI IMAGE GENERATION
+   ============================================================ */
+
+async function generateGeminiImage(
   params: GenerationParams
-): string {
+): Promise<string> {
+  const {
+    width,
+    height,
+  } = getDimensions(
+    params.aspectRatio
+  );
+
   const generationPrompt =
     buildGenerationPrompt(params);
 
-  const isPortrait =
-    params.aspectRatio === '9:16' ||
-    params.aspectRatio === '3:4';
+  const response = await fetch(
+    '/api/generate-image',
+    {
+      method: 'POST',
 
-  const isSquare =
-    params.aspectRatio === '1:1';
+      headers: {
+        'Content-Type':
+          'application/json',
+      },
 
-  let width = 1280;
-  let height = 720;
+      body: JSON.stringify({
+        prompt:
+          generationPrompt,
 
-  if (isPortrait) {
-    width = 768;
-    height = 1280;
-  } else if (isSquare) {
-    width = 1024;
-    height = 1024;
-  }
+        width,
 
-  const query =
-    new URLSearchParams();
+        height,
 
-  query.set(
-    'width',
-    String(width)
+        seed: params.seed,
+      }),
+    }
   );
 
-  query.set(
-    'height',
-    String(height)
-  );
+  if (!response.ok) {
+    let errorMessage =
+      'Image generation failed';
 
-  /*
-   * Pollinations logo setting.
-   */
-  query.set(
-    'nologo',
-    'true'
-  );
+    try {
+      const errorData =
+        await response.json();
 
-  /*
-   * Keep generation private.
-   */
-  query.set(
-    'private',
-    'true'
-  );
+      if (
+        errorData?.error
+      ) {
+        errorMessage =
+          errorData.error;
+      }
+    } catch {
+      // Ignore JSON parsing errors.
+    }
 
-  /*
-   * Use selected seed when available.
-   */
-  if (params.seed !== null) {
-    query.set(
-      'seed',
-      String(params.seed)
+    throw new Error(
+      errorMessage
     );
   }
 
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(
-    generationPrompt
-  )}?${query.toString()}`;
+  const blob =
+    await response.blob();
+
+  if (
+    !blob.type.startsWith(
+      'image/'
+    )
+  ) {
+    throw new Error(
+      'Gemini returned an invalid image response'
+    );
+  }
+
+  return URL.createObjectURL(
+    blob
+  );
 }
 
 /* ============================================================
@@ -469,167 +528,188 @@ export function useStudio() {
      GENERATE
      ========================================================== */
 
-  const generate = useCallback(() => {
-    if (
-      status === 'generating' ||
-      status === 'queued' ||
-      status === 'upscaling'
-    ) {
-      return;
-    }
-
-    if (!params.prompt.trim()) {
-      return;
-    }
-
-    const [
-      minMs,
-      maxMs,
-    ] =
-      GENERATION_DURATIONS[
-        params.quality
-      ];
-
-    const totalMs =
-      rand(minMs, maxMs);
-
-    const genPhaseMs =
-      Math.round(
-        totalMs * 0.85
-      );
-
-    setStatus('queued');
-    setProgress(0);
-    setCurrentResult(null);
-
-    const startTs =
-      Date.now();
-
-    const id =
-      `gen-${Date.now()}-${rand(
-        1000,
-        9999
-      )}`;
-
-    const tick = () => {
-      const elapsed =
-        Date.now() - startTs;
-
+  const generate = useCallback(
+    async () => {
       if (
-        elapsed < genPhaseMs
+        status === 'generating' ||
+        status === 'queued' ||
+        status === 'upscaling'
       ) {
-        const pct =
-          Math.min(
-            (elapsed /
-              genPhaseMs) *
-              100,
-            99
-          );
-
-        if (elapsed < 500) {
-          setStatus('queued');
-        } else {
-          setStatus(
-            'generating'
-          );
-        }
-
-        setProgress(
-          Math.round(pct)
-        );
-
-        abortRef.current =
-          setTimeout(
-            tick,
-            80
-          );
-      } else if (
-        elapsed < totalMs
-      ) {
-        setStatus(
-          'upscaling'
-        );
-
-        setProgress(99);
-
-        abortRef.current =
-          setTimeout(
-            tick,
-            100
-          );
-      } else {
-        const mediaUrl =
-          buildImageUrl(params);
-
-        const item: GeneratedItem =
-          {
-            id,
-
-            createdAt:
-              new Date(),
-
-            params: {
-              ...params,
-
-              camera: {
-                ...params.camera,
-              },
-            },
-
-            status: 'done',
-
-            thumbnailUrl:
-              mediaUrl,
-
-            mediaUrl,
-
-            type:
-              selectedModel.type ===
-              'image'
-                ? 'image'
-                : 'video',
-
-            duration:
-              selectedModel.type ===
-              'image'
-                ? undefined
-                : params.duration,
-
-            liked: false,
-
-            title:
-              params.prompt
-                .split(' ')
-                .slice(0, 5)
-                .join(' '),
-          };
-
-        setStatus('done');
-
-        setProgress(100);
-
-        setCurrentResult(item);
-
-        setHistory(prev => [
-          item,
-          ...prev,
-        ]);
-
-        abortRef.current =
-          null;
+        return;
       }
-    };
 
-    abortRef.current =
-      setTimeout(
-        tick,
-        80
-      );
-  }, [
-    params,
-    status,
-    selectedModel.type,
-  ]);
+      if (!params.prompt.trim()) {
+        return;
+      }
+
+      const [
+        minMs,
+        maxMs,
+      ] =
+        GENERATION_DURATIONS[
+          params.quality
+        ];
+
+      const totalMs =
+        rand(minMs, maxMs);
+
+      const genPhaseMs =
+        Math.round(
+          totalMs * 0.85
+        );
+
+      setStatus('queued');
+      setProgress(0);
+      setCurrentResult(null);
+
+      const startTs =
+        Date.now();
+
+      const id =
+        `gen-${Date.now()}-${rand(
+          1000,
+          9999
+        )}`;
+
+      const tick = async () => {
+        const elapsed =
+          Date.now() - startTs;
+
+        if (
+          elapsed < genPhaseMs
+        ) {
+          const pct =
+            Math.min(
+              (elapsed /
+                genPhaseMs) *
+                100,
+              99
+            );
+
+          if (elapsed < 500) {
+            setStatus('queued');
+          } else {
+            setStatus(
+              'generating'
+            );
+          }
+
+          setProgress(
+            Math.round(pct)
+          );
+
+          abortRef.current =
+            setTimeout(
+              tick,
+              80
+            );
+        } else if (
+          elapsed < totalMs
+        ) {
+          setStatus(
+            'upscaling'
+          );
+
+          setProgress(99);
+
+          abortRef.current =
+            setTimeout(
+              tick,
+              100
+            );
+        } else {
+          try {
+            const mediaUrl =
+              await generateGeminiImage(
+                params
+              );
+
+            const item: GeneratedItem =
+              {
+                id,
+
+                createdAt:
+                  new Date(),
+
+                params: {
+                  ...params,
+
+                  camera: {
+                    ...params.camera,
+                  },
+                },
+
+                status: 'done',
+
+                thumbnailUrl:
+                  mediaUrl,
+
+                mediaUrl,
+
+                /*
+                 * Gemini generates images,
+                 * so this result is always
+                 * treated as an image.
+                 */
+                type: 'image',
+
+                duration:
+                  undefined,
+
+                liked: false,
+
+                title:
+                  params.prompt
+                    .split(' ')
+                    .slice(0, 5)
+                    .join(' '),
+              };
+
+            setStatus('done');
+
+            setProgress(100);
+
+            setCurrentResult(item);
+
+            setHistory(prev => [
+              item,
+              ...prev,
+            ]);
+          } catch (error) {
+            console.error(
+              'Generation failed:',
+              error
+            );
+
+            setStatus('idle');
+            setProgress(0);
+
+            const message =
+              error instanceof Error
+                ? error.message
+                : 'Image generation failed';
+
+            window.alert(
+              message
+            );
+          } finally {
+            abortRef.current =
+              null;
+          }
+        }
+      };
+
+      abortRef.current =
+        setTimeout(
+          tick,
+          80
+        );
+    },
+    [
+      params,
+      status,
+    ]
+  );
 
   /* ==========================================================
      CANCEL
