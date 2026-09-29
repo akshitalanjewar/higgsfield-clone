@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+
 import type {
   GenerationParams,
   GeneratedItem,
@@ -12,81 +13,148 @@ import type {
   LensType,
   ApertureValue,
 } from '../types';
+
 import { MODELS, buildGallery } from '../data/studioData';
 
-// ─── Simulated generation time by quality ───────────────────────────────────
-
-const GENERATION_DURATIONS: Record<QualityLevel, [number, number]> = {
+const GENERATION_DURATIONS: Record<
+  QualityLevel,
+  [number, number]
+> = {
   draft: [3000, 6000],
   standard: [6000, 12000],
   cinematic: [12000, 22000],
 };
 
-function rand(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function rand(
+  min: number,
+  max: number
+) {
+  return (
+    Math.floor(
+      Math.random() *
+        (max - min + 1)
+    ) + min
+  );
 }
 
-// ─── Result images ───────────────────────────────────────────────────────────
+/* ============================================================
+   GENERATION PROMPT
+   ============================================================ */
 
-const RESULT_POOL: Record<string, string[]> = {
-  'soul_16:9': [
-    'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=1280&q=90',
-    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&q=90',
-    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1280&q=90',
-    'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1280&q=90',
-  ],
-
-  'soul_9:16': [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=720&q=90',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=720&q=90',
-  ],
-
-  'kling_16:9': [
-    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=1280&q=90',
-    'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=1280&q=90',
-  ],
-
-  'veo_16:9': [
-    'https://images.unsplash.com/photo-1559825481-12a05cc00344?w=1280&q=90',
-    'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1280&q=90',
-  ],
-
-  'flux_1:1': [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900&q=90',
-    'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=900&q=90',
-  ],
-
-  'flux_9:16': [
-    'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=720&q=90',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=720&q=90',
-  ],
-
-  'flux_16:9': [
-    'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1280&q=90',
-    'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1280&q=90',
-  ],
-
-  default: [
-    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1280&q=90',
-    'https://images.unsplash.com/photo-1519638831568-d9897f54ed69?w=1280&q=90',
-    'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=1280&q=90',
-  ],
-};
-
-function pickResult(
-  modelId: string,
-  aspectRatio: AspectRatio
+function buildGenerationPrompt(
+  params: GenerationParams
 ): string {
-  const model = MODELS.find(m => m.id === modelId);
-  const family = model?.family ?? 'default';
+  const camera = params.camera;
 
-  const key = `${family}_${aspectRatio}`;
-  const pool = RESULT_POOL[key] ?? RESULT_POOL.default;
+  const stabilizationInstruction =
+    camera.stabilization
+      ? 'Stable camera, controlled composition, smooth professional camera movement, no camera shake'
+      : 'Natural handheld camera movement, subtle organic camera shake, dynamic documentary-style composition';
 
-  return pool[rand(0, pool.length - 1)];
+  return [
+    params.prompt.trim(),
+
+    params.negativePrompt.trim()
+      ? `Negative prompt: ${params.negativePrompt.trim()}`
+      : '',
+
+    `Camera movement: ${camera.movement}`,
+
+    `Camera speed: ${camera.speed}`,
+
+    `Lens: ${camera.lens}`,
+
+    `Aperture: ${camera.aperture}`,
+
+    stabilizationInstruction,
+
+    params.stylePreset
+      ? `Visual style: ${params.stylePreset}`
+      : '',
+
+    params.enhance
+      ? 'Highly detailed, polished professional image, refined lighting and composition'
+      : '',
+  ]
+    .filter(Boolean)
+    .join('. ');
 }
 
-// ─── Default generation params ───────────────────────────────────────────────
+/* ============================================================
+   IMAGE URL
+   ============================================================ */
+
+function buildImageUrl(
+  params: GenerationParams
+): string {
+  const generationPrompt =
+    buildGenerationPrompt(params);
+
+  const isPortrait =
+    params.aspectRatio === '9:16' ||
+    params.aspectRatio === '3:4';
+
+  const isSquare =
+    params.aspectRatio === '1:1';
+
+  let width = 1280;
+  let height = 720;
+
+  if (isPortrait) {
+    width = 768;
+    height = 1280;
+  } else if (isSquare) {
+    width = 1024;
+    height = 1024;
+  }
+
+  const query =
+    new URLSearchParams();
+
+  query.set(
+    'width',
+    String(width)
+  );
+
+  query.set(
+    'height',
+    String(height)
+  );
+
+  /*
+   * Pollinations logo setting.
+   */
+  query.set(
+    'nologo',
+    'true'
+  );
+
+  /*
+   * Keep generation private.
+   */
+  query.set(
+    'private',
+    'true'
+  );
+
+  /*
+   * Use selected seed when available.
+   */
+  if (params.seed !== null) {
+    query.set(
+      'seed',
+      String(params.seed)
+    );
+  }
+
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(
+    generationPrompt
+  )}?${query.toString()}`;
+}
+
+/* ============================================================
+   DEFAULT CAMERA
+   ============================================================ */
 
 const DEFAULT_CAMERA: CameraSettings = {
   movement: 'static',
@@ -95,6 +163,10 @@ const DEFAULT_CAMERA: CameraSettings = {
   aperture: 'f/2.8',
   stabilization: true,
 };
+
+/* ============================================================
+   DEFAULT PARAMETERS
+   ============================================================ */
 
 const DEFAULT_PARAMS: GenerationParams = {
   prompt: '',
@@ -109,14 +181,18 @@ const DEFAULT_PARAMS: GenerationParams = {
   enhance: true,
 };
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
+/* ============================================================
+   HOOK
+   ============================================================ */
 
 export function useStudio() {
   const [navSection, setNavSection] =
     useState<NavSection>('cinema');
 
   const [params, setParams] =
-    useState<GenerationParams>(DEFAULT_PARAMS);
+    useState<GenerationParams>(
+      DEFAULT_PARAMS
+    );
 
   const [status, setStatus] =
     useState<GenerationStatus>('idle');
@@ -125,174 +201,273 @@ export function useStudio() {
     useState(0);
 
   const [currentResult, setCurrentResult] =
-    useState<GeneratedItem | null>(null);
+    useState<GeneratedItem | null>(
+      null
+    );
 
   const [history, setHistory] =
-    useState<GeneratedItem[]>(buildGallery());
+    useState<GeneratedItem[]>(
+      buildGallery()
+    );
 
   const [sidebarOpen, setSidebarOpen] =
     useState(true);
 
   const [rightPanelTab, setRightPanelTab] =
-    useState<'controls' | 'camera'>('controls');
+    useState<
+      'controls' | 'camera'
+    >('controls');
 
   const abortRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
+    useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null);
 
   const selectedModel: AIModel =
-    MODELS.find(m => m.id === params.modelId) ?? MODELS[0];
+    MODELS.find(
+      model =>
+        model.id ===
+        params.modelId
+    ) ?? MODELS[0];
 
-  // ── Param setters ─────────────────────────────────────────────────────────
+  /* ==========================================================
+     PROMPT
+     ========================================================== */
 
-  const setPrompt = useCallback((prompt: string) => {
-    setParams(p => ({
-      ...p,
-      prompt,
-    }));
-  }, []);
+  const setPrompt = useCallback(
+    (prompt: string) => {
+      setParams(prev => ({
+        ...prev,
+        prompt,
+      }));
+    },
+    []
+  );
 
-  const setNegativePrompt = useCallback((negativePrompt: string) => {
-    setParams(p => ({
-      ...p,
-      negativePrompt,
-    }));
-  }, []);
+  const setNegativePrompt =
+    useCallback(
+      (negativePrompt: string) => {
+        setParams(prev => ({
+          ...prev,
+          negativePrompt,
+        }));
+      },
+      []
+    );
 
-  const setModelId = useCallback((modelId: string) => {
-    const model = MODELS.find(m => m.id === modelId);
+  /* ==========================================================
+     MODEL
+     ========================================================== */
 
-    setParams(p => ({
-      ...p,
-      modelId,
+  const setModelId = useCallback(
+    (modelId: string) => {
+      const model =
+        MODELS.find(
+          item =>
+            item.id === modelId
+        );
 
-      duration: model
-        ? Math.min(
-            p.duration,
-            Math.max(model.maxDuration, 1)
+      setParams(prev => ({
+        ...prev,
+
+        modelId,
+
+        duration: model
+          ? Math.min(
+              prev.duration,
+              Math.max(
+                model.maxDuration,
+                1
+              )
+            )
+          : prev.duration,
+
+        aspectRatio:
+          model &&
+          !model.aspectRatios.includes(
+            prev.aspectRatio
           )
-        : p.duration,
-
-      aspectRatio:
-        model && !model.aspectRatios.includes(p.aspectRatio)
-          ? model.aspectRatios[0]
-          : p.aspectRatio,
-    }));
-  }, []);
-
-  const setAspectRatio = useCallback(
-    (aspectRatio: AspectRatio) => {
-      setParams(p => ({
-        ...p,
-        aspectRatio,
+            ? model.aspectRatios[0]
+            : prev.aspectRatio,
       }));
     },
     []
   );
 
-  const setDuration = useCallback((duration: number) => {
-    setParams(p => ({
-      ...p,
-      duration,
-    }));
-  }, []);
+  /* ==========================================================
+     OUTPUT SETTINGS
+     ========================================================== */
 
-  const setQuality = useCallback(
-    (quality: QualityLevel) => {
-      setParams(p => ({
-        ...p,
-        quality,
-      }));
-    },
-    []
-  );
+  const setAspectRatio =
+    useCallback(
+      (
+        aspectRatio: AspectRatio
+      ) => {
+        setParams(prev => ({
+          ...prev,
+          aspectRatio,
+        }));
+      },
+      []
+    );
+
+  const setDuration =
+    useCallback(
+      (duration: number) => {
+        setParams(prev => ({
+          ...prev,
+          duration,
+        }));
+      },
+      []
+    );
+
+  const setQuality =
+    useCallback(
+      (quality: QualityLevel) => {
+        setParams(prev => ({
+          ...prev,
+          quality,
+        }));
+      },
+      []
+    );
+
+  /* ==========================================================
+     SEED
+     ========================================================== */
 
   const setSeed = useCallback(
     (seed: number | null) => {
-      setParams(p => ({
-        ...p,
+      setParams(prev => ({
+        ...prev,
         seed,
       }));
     },
     []
   );
 
-  const setStylePreset = useCallback(
-    (stylePreset: string | null) => {
-      setParams(p => ({
-        ...p,
-        stylePreset,
-      }));
-    },
-    []
-  );
+  const randomiseSeed =
+    useCallback(() => {
+      setSeed(
+        rand(1, 999999)
+      );
+    }, [setSeed]);
 
-  const setEnhance = useCallback((enhance: boolean) => {
-    setParams(p => ({
-      ...p,
-      enhance,
-    }));
-  }, []);
+  const clearSeed =
+    useCallback(() => {
+      setSeed(null);
+    }, [setSeed]);
 
-  const setCameraMovement = useCallback(
-    (movement: CameraMove) => {
-      setParams(p => ({
-        ...p,
-        camera: {
-          ...p.camera,
-          movement,
-        },
-      }));
-    },
-    []
-  );
+  /* ==========================================================
+     STYLE / ENHANCE
+     ========================================================== */
 
-  const setCameraSpeed = useCallback((speed: number) => {
-    setParams(p => ({
-      ...p,
-      camera: {
-        ...p.camera,
-        speed,
+  const setStylePreset =
+    useCallback(
+      (
+        stylePreset: string | null
+      ) => {
+        setParams(prev => ({
+          ...prev,
+          stylePreset,
+        }));
       },
-    }));
-  }, []);
+      []
+    );
 
-  const setLens = useCallback((lens: LensType) => {
-    setParams(p => ({
-      ...p,
-      camera: {
-        ...p.camera,
-        lens,
+  const setEnhance =
+    useCallback(
+      (enhance: boolean) => {
+        setParams(prev => ({
+          ...prev,
+          enhance,
+        }));
       },
-    }));
-  }, []);
+      []
+    );
 
-  const setAperture = useCallback(
-    (aperture: ApertureValue) => {
-      setParams(p => ({
-        ...p,
+  /* ==========================================================
+     CAMERA
+     ========================================================== */
+
+  const setCameraMovement =
+    useCallback(
+      (movement: CameraMove) => {
+        setParams(prev => ({
+          ...prev,
+
+          camera: {
+            ...prev.camera,
+            movement,
+          },
+        }));
+      },
+      []
+    );
+
+  const setCameraSpeed =
+    useCallback(
+      (speed: number) => {
+        setParams(prev => ({
+          ...prev,
+
+          camera: {
+            ...prev.camera,
+            speed,
+          },
+        }));
+      },
+      []
+    );
+
+  const setLens = useCallback(
+    (lens: LensType) => {
+      setParams(prev => ({
+        ...prev,
+
         camera: {
-          ...p.camera,
-          aperture,
+          ...prev.camera,
+          lens,
         },
       }));
     },
     []
   );
 
-  const setStabilization = useCallback(
-    (stabilization: boolean) => {
-      setParams(p => ({
-        ...p,
-        camera: {
-          ...p.camera,
-          stabilization,
-        },
-      }));
-    },
-    []
-  );
+  const setAperture =
+    useCallback(
+      (aperture: ApertureValue) => {
+        setParams(prev => ({
+          ...prev,
 
-  // ── Generation ────────────────────────────────────────────────────────────
+          camera: {
+            ...prev.camera,
+            aperture,
+          },
+        }));
+      },
+      []
+    );
+
+  const setStabilization =
+    useCallback(
+      (stabilization: boolean) => {
+        setParams(prev => ({
+          ...prev,
+
+          camera: {
+            ...prev.camera,
+            stabilization,
+          },
+        }));
+      },
+      []
+    );
+
+  /* ==========================================================
+     GENERATE
+     ========================================================== */
 
   const generate = useCallback(() => {
     if (
@@ -307,218 +482,290 @@ export function useStudio() {
       return;
     }
 
-    const [minMs, maxMs] =
-      GENERATION_DURATIONS[params.quality];
+    const [
+      minMs,
+      maxMs,
+    ] =
+      GENERATION_DURATIONS[
+        params.quality
+      ];
 
-    const totalMs = rand(minMs, maxMs);
+    const totalMs =
+      rand(minMs, maxMs);
 
     const genPhaseMs =
-      Math.round(totalMs * 0.85);
+      Math.round(
+        totalMs * 0.85
+      );
 
     setStatus('queued');
     setProgress(0);
     setCurrentResult(null);
 
-    const startTs = Date.now();
+    const startTs =
+      Date.now();
 
     const id =
-      `gen-${Date.now()}-${rand(1000, 9999)}`;
+      `gen-${Date.now()}-${rand(
+        1000,
+        9999
+      )}`;
 
     const tick = () => {
       const elapsed =
         Date.now() - startTs;
 
-      if (elapsed < genPhaseMs) {
+      if (
+        elapsed < genPhaseMs
+      ) {
         const pct =
           Math.min(
-            (elapsed / genPhaseMs) * 100,
+            (elapsed /
+              genPhaseMs) *
+              100,
             99
           );
 
         if (elapsed < 500) {
           setStatus('queued');
         } else {
-          setStatus('generating');
+          setStatus(
+            'generating'
+          );
         }
 
-        setProgress(Math.round(pct));
+        setProgress(
+          Math.round(pct)
+        );
 
         abortRef.current =
-          setTimeout(tick, 80);
+          setTimeout(
+            tick,
+            80
+          );
+      } else if (
+        elapsed < totalMs
+      ) {
+        setStatus(
+          'upscaling'
+        );
 
-      } else if (elapsed < totalMs) {
-        setStatus('upscaling');
         setProgress(99);
 
         abortRef.current =
-          setTimeout(tick, 100);
-
+          setTimeout(
+            tick,
+            100
+          );
       } else {
         const mediaUrl =
-          pickResult(
-            params.modelId,
-            params.aspectRatio
-          );
+          buildImageUrl(params);
 
-        const item: GeneratedItem = {
-          id,
+        const item: GeneratedItem =
+          {
+            id,
 
-          createdAt: new Date(),
+            createdAt:
+              new Date(),
 
-          params: {
-            ...params,
-            camera: {
-              ...params.camera,
+            params: {
+              ...params,
+
+              camera: {
+                ...params.camera,
+              },
             },
-          },
 
-          status: 'done',
+            status: 'done',
 
-          thumbnailUrl: mediaUrl,
-          mediaUrl,
+            thumbnailUrl:
+              mediaUrl,
 
-          type:
-            selectedModel.type === 'image'
-              ? 'image'
-              : 'video',
+            mediaUrl,
 
-          duration:
-            selectedModel.type === 'image'
-              ? undefined
-              : params.duration,
+            type:
+              selectedModel.type ===
+              'image'
+                ? 'image'
+                : 'video',
 
-          liked: false,
+            duration:
+              selectedModel.type ===
+              'image'
+                ? undefined
+                : params.duration,
 
-          title:
-            params.prompt
-              .split(' ')
-              .slice(0, 5)
-              .join(' '),
-        };
+            liked: false,
+
+            title:
+              params.prompt
+                .split(' ')
+                .slice(0, 5)
+                .join(' '),
+          };
 
         setStatus('done');
+
         setProgress(100);
+
         setCurrentResult(item);
 
         setHistory(prev => [
           item,
           ...prev,
         ]);
+
+        abortRef.current =
+          null;
       }
     };
 
     abortRef.current =
-      setTimeout(tick, 80);
+      setTimeout(
+        tick,
+        80
+      );
   }, [
     params,
     status,
     selectedModel.type,
   ]);
 
-  // ── Cancel generation ─────────────────────────────────────────────────────
+  /* ==========================================================
+     CANCEL
+     ========================================================== */
 
-  const cancelGeneration = useCallback(() => {
-    if (abortRef.current) {
-      clearTimeout(abortRef.current);
-      abortRef.current = null;
-    }
+  const cancelGeneration =
+    useCallback(() => {
+      if (abortRef.current) {
+        clearTimeout(
+          abortRef.current
+        );
 
-    setStatus('idle');
-    setProgress(0);
-  }, []);
+        abortRef.current =
+          null;
+      }
 
-  // ── Reset for New Generation ──────────────────────────────────────────────
+      setStatus('idle');
+      setProgress(0);
+    }, []);
 
-  const resetStudio = useCallback(() => {
-    // Stop any running generation
-    if (abortRef.current) {
-      clearTimeout(abortRef.current);
-      abortRef.current = null;
-    }
+  /* ==========================================================
+     RESET
+     ========================================================== */
 
-    // Reset creation state
-    setParams({
-      ...DEFAULT_PARAMS,
-      camera: {
-        ...DEFAULT_CAMERA,
+  const resetStudio =
+    useCallback(() => {
+      if (abortRef.current) {
+        clearTimeout(
+          abortRef.current
+        );
+
+        abortRef.current =
+          null;
+      }
+
+      setParams({
+        ...DEFAULT_PARAMS,
+
+        camera: {
+          ...DEFAULT_CAMERA,
+        },
+      });
+
+      setStatus('idle');
+      setProgress(0);
+      setCurrentResult(null);
+
+      setNavSection('cinema');
+    }, []);
+
+  /* ==========================================================
+     LIKE
+     ========================================================== */
+
+  const toggleLike =
+    useCallback(
+      (itemId: string) => {
+        setHistory(prev =>
+          prev.map(item =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  liked:
+                    !item.liked,
+                }
+              : item
+          )
+        );
+
+        setCurrentResult(prev =>
+          prev?.id === itemId
+            ? {
+                ...prev,
+
+                liked:
+                  !prev.liked,
+              }
+            : prev
+        );
       },
-    });
-
-    setStatus('idle');
-    setProgress(0);
-    setCurrentResult(null);
-
-    // Return to the main creation section
-    setNavSection('cinema');
-
-    // Keep gallery/history intact
-  }, []);
-
-  // ── Gallery actions ───────────────────────────────────────────────────────
-
-  const toggleLike = useCallback((itemId: string) => {
-    setHistory(prev =>
-      prev.map(item =>
-        item.id === itemId
-          ? {
-              ...item,
-              liked: !item.liked,
-            }
-          : item
-      )
+      []
     );
 
-    setCurrentResult(prev =>
-      prev?.id === itemId
-        ? {
-            ...prev,
-            liked: !prev.liked,
-          }
-        : prev
+  /* ==========================================================
+     DELETE
+     ========================================================== */
+
+  const deleteItem =
+    useCallback(
+      (itemId: string) => {
+        setHistory(prev =>
+          prev.filter(
+            item =>
+              item.id !== itemId
+          )
+        );
+
+        setCurrentResult(prev =>
+          prev?.id === itemId
+            ? null
+            : prev
+        );
+      },
+      []
     );
-  }, []);
 
-  const deleteItem = useCallback((itemId: string) => {
-    setHistory(prev =>
-      prev.filter(item => item.id !== itemId)
+  /* ==========================================================
+     SELECT HISTORY ITEM
+     ========================================================== */
+
+  const selectHistoryItem =
+    useCallback(
+      (item: GeneratedItem) => {
+        setCurrentResult(item);
+
+        setParams(prev => ({
+          ...prev,
+
+          ...item.params,
+
+          camera: {
+            ...item.params.camera,
+          },
+        }));
+
+        setStatus('done');
+        setProgress(100);
+      },
+      []
     );
 
-    setCurrentResult(prev =>
-      prev?.id === itemId
-        ? null
-        : prev
-    );
-  }, []);
-
-  const selectHistoryItem = useCallback(
-    (item: GeneratedItem) => {
-      setCurrentResult(item);
-
-      setParams(prev => ({
-        ...prev,
-        ...item.params,
-      }));
-
-      setStatus('done');
-      setProgress(100);
-    },
-    []
-  );
-
-  // ── Seed ──────────────────────────────────────────────────────────────────
-
-  const randomiseSeed = useCallback(() => {
-    setSeed(rand(1, 999999));
-  }, [setSeed]);
-
-  const clearSeed = useCallback(() => {
-    setSeed(null);
-  }, [setSeed]);
-
-  // ── Public API ────────────────────────────────────────────────────────────
+  /* ==========================================================
+     RETURN
+     ========================================================== */
 
   return {
-    // State
     navSection,
     setNavSection,
 
@@ -540,7 +787,6 @@ export function useStudio() {
     selectedModel,
     models: MODELS,
 
-    // Param setters
     setPrompt,
     setNegativePrompt,
 
@@ -559,12 +805,10 @@ export function useStudio() {
 
     setCameraMovement,
     setCameraSpeed,
-
     setLens,
     setAperture,
     setStabilization,
 
-    // Actions
     generate,
     cancelGeneration,
     resetStudio,

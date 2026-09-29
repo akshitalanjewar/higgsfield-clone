@@ -1,174 +1,705 @@
-import { Hash, Shuffle, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
-import type { AIModel, AspectRatio, QualityLevel } from '../types';
-import { cn, SectionLabel } from './ui';
+import {
+  Camera,
+  ChevronDown,
+  CircleHelp,
+  Gauge,
+  KeyRound,
+  Move3d,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 
-interface Props {
+import type {
+  AIModel,
+  ApertureValue,
+  AspectRatio,
+  CameraMove,
+  LensType,
+  QualityLevel,
+} from '../types';
+
+interface GenerationControlsProps {
   model: AIModel;
+
   aspectRatio: AspectRatio;
-  onAspectRatioChange: (v: AspectRatio) => void;
+  onAspectRatioChange: (
+    value: AspectRatio
+  ) => void;
+
   duration: number;
-  onDurationChange: (v: number) => void;
+  onDurationChange: (
+    value: number
+  ) => void;
+
   quality: QualityLevel;
-  onQualityChange: (v: QualityLevel) => void;
+  onQualityChange: (
+    value: QualityLevel
+  ) => void;
+
   seed: number | null;
-  onSeedChange: (v: number | null) => void;
+  onSeedChange: (
+    value: number | null
+  ) => void;
+
   onRandomiseSeed: () => void;
   onClearSeed: () => void;
+
+  cameraMovement: CameraMove;
+  onCameraMovementChange: (
+    value: CameraMove
+  ) => void;
+
+  cameraSpeed: number;
+  onCameraSpeedChange: (
+    value: number
+  ) => void;
+
+  lens: LensType;
+  onLensChange: (
+    value: LensType
+  ) => void;
+
+  aperture: ApertureValue;
+  onApertureChange: (
+    value: ApertureValue
+  ) => void;
+
+  stabilization: boolean;
+  onStabilizationChange: (
+    value: boolean
+  ) => void;
+
   disabled?: boolean;
 }
 
-const ASPECT_RATIO_SHAPES: Record<AspectRatio, string> = {
-  '16:9':  'w-8 h-[18px]',
-  '9:16':  'w-[10px] h-5',
-  '1:1':   'w-5 h-5',
-  '4:3':   'w-[26px] h-5',
-  '3:4':   'w-5 h-[26px]',
-  '21:9':  'w-10 h-[17px]',
-};
+const aspectRatios: AspectRatio[] = [
+  '16:9',
+  '9:16',
+  '1:1',
+  '4:3',
+  '3:4',
+  '21:9',
+];
 
-const QUALITY_LABELS: Record<QualityLevel, { label: string; desc: string; color: string }> = {
-  draft:    { label: 'Draft',    desc: 'Fast preview', color: 'text-slate-400' },
-  standard: { label: 'Standard', desc: 'Balanced',     color: 'text-cinema-cyan' },
-  cinematic:{ label: 'Cinematic',desc: 'Best quality', color: 'text-cinema-gold' },
-};
+const cameraMoves: {
+  value: CameraMove;
+  label: string;
+}[] = [
+  {
+    value: 'static',
+    label: 'Static',
+  },
+  {
+    value: 'pan-left',
+    label: 'Pan left',
+  },
+  {
+    value: 'pan-right',
+    label: 'Pan right',
+  },
+  {
+    value: 'tilt-up',
+    label: 'Tilt up',
+  },
+  {
+    value: 'tilt-down',
+    label: 'Tilt down',
+  },
+  {
+    value: 'zoom-in',
+    label: 'Zoom in',
+  },
+  {
+    value: 'zoom-out',
+    label: 'Zoom out',
+  },
+  {
+    value: 'orbit-left',
+    label: 'Orbit left',
+  },
+  {
+    value: 'orbit-right',
+    label: 'Orbit right',
+  },
+  {
+    value: 'dolly-in',
+    label: 'Dolly in',
+  },
+  {
+    value: 'dolly-out',
+    label: 'Dolly out',
+  },
+  {
+    value: 'crane-up',
+    label: 'Crane up',
+  },
+  {
+    value: 'crane-down',
+    label: 'Crane down',
+  },
+];
+
+const lenses: LensType[] = [
+  '24mm',
+  '35mm',
+  '50mm',
+  '85mm',
+  '135mm',
+  '200mm',
+];
+
+const apertures: ApertureValue[] = [
+  'f/1.4',
+  'f/1.8',
+  'f/2.8',
+  'f/4',
+  'f/5.6',
+  'f/8',
+];
 
 export function GenerationControls({
-  model, aspectRatio, onAspectRatioChange,
-  duration, onDurationChange,
-  quality, onQualityChange,
-  seed, onSeedChange, onRandomiseSeed, onClearSeed,
-  disabled,
-}: Props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const isImage = model.type === 'image';
-  const availableRatios = model.aspectRatios;
+  model,
+
+  aspectRatio,
+  onAspectRatioChange,
+
+  duration,
+  onDurationChange,
+
+  quality,
+  onQualityChange,
+
+  seed,
+  onSeedChange,
+
+  onRandomiseSeed,
+  onClearSeed,
+
+  cameraMovement,
+  onCameraMovementChange,
+
+  cameraSpeed,
+  onCameraSpeedChange,
+
+  lens,
+  onLensChange,
+
+  aperture,
+  onApertureChange,
+
+  stabilization,
+  onStabilizationChange,
+
+  disabled = false,
+}: GenerationControlsProps) {
+  const maxDuration = Math.max(
+    model.maxDuration,
+    1
+  );
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Aspect Ratio */}
-      <div>
-        <SectionLabel>Aspect Ratio</SectionLabel>
-        <div className="flex gap-2 flex-wrap">
-          {availableRatios.map(ratio => (
-            <button
-              key={ratio}
-              disabled={disabled}
-              onClick={() => onAspectRatioChange(ratio)}
-              className={cn(
-                'flex flex-col items-center gap-1.5 px-2.5 py-2 rounded-lg border text-[10px] font-medium transition-all',
-                aspectRatio === ratio
-                  ? 'bg-brand-600/15 border-brand-600/50 text-brand-300'
-                  : 'border-dark-border text-dark-muted hover:border-dark-borderLight hover:text-slate-300 bg-dark-card',
-                disabled && 'opacity-50 cursor-not-allowed'
-              )}
-            >
-              <span className={cn(
-                'border-2 rounded-sm flex-shrink-0',
-                aspectRatio === ratio ? 'border-brand-400' : 'border-dark-muted'
-              ) + ' ' + ASPECT_RATIO_SHAPES[ratio]} />
-              {ratio}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-7">
 
-      {/* Duration (video only) */}
-      {!isImage && (
+      {/* ================================================== */}
+      {/* OUTPUT */}
+      {/* ================================================== */}
+
+      <section>
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles
+            size={15}
+            className="text-brand-400"
+          />
+
+          <h3 className="text-xs font-semibold text-white">
+            Output
+          </h3>
+        </div>
+
+        {/* ASPECT RATIO */}
+
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <SectionLabel className="mb-0">Duration</SectionLabel>
-            <span className="text-xs font-semibold text-white tabular-nums">{duration}s</span>
+          <label className="mb-2 block text-xs font-medium text-slate-400">
+            Aspect ratio
+          </label>
+
+          <div className="grid grid-cols-3 gap-2">
+            {aspectRatios
+              .filter((ratio) =>
+                model.aspectRatios.includes(
+                  ratio
+                )
+              )
+              .map((ratio) => (
+                <button
+                  key={ratio}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    onAspectRatioChange(
+                      ratio
+                    )
+                  }
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                    aspectRatio === ratio
+                      ? 'border-brand-500/50 bg-brand-500/10 text-brand-300'
+                      : 'border-dark-border bg-dark-surface text-slate-400 hover:border-slate-600 hover:text-white'
+                  } ${
+                    disabled
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'cursor-pointer'
+                  }`}
+                >
+                  {ratio}
+                </button>
+              ))}
           </div>
+        </div>
+
+        {/* DURATION */}
+
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-medium text-slate-400">
+              Duration
+            </label>
+
+            <span className="text-xs font-semibold text-white">
+              {duration}s
+            </span>
+          </div>
+
           <input
             type="range"
-            min={2}
-            max={model.maxDuration}
-            step={1}
-            value={duration}
+            min={1}
+            max={maxDuration}
+            value={Math.min(
+              duration,
+              maxDuration
+            )}
             disabled={disabled}
-            onChange={e => onDurationChange(Number(e.target.value))}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer disabled:opacity-50"
+            onChange={(event) =>
+              onDurationChange(
+                Number(event.target.value)
+              )
+            }
+            className="w-full accent-brand-500"
           />
-          <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-dark-muted">2s</span>
-            <span className="text-[10px] text-dark-muted">{model.maxDuration}s</span>
+
+          <div className="mt-1 flex justify-between text-[10px] text-slate-600">
+            <span>1s</span>
+
+            <span>
+              {maxDuration}s
+            </span>
           </div>
         </div>
-      )}
 
-      {/* Quality */}
-      <div>
-        <SectionLabel>Quality</SectionLabel>
-        <div className="flex gap-2">
-          {(['draft', 'standard', 'cinematic'] as QualityLevel[]).map(q => {
-            const info = QUALITY_LABELS[q];
-            return (
+        {/* QUALITY */}
+
+        <div className="mt-5">
+          <label className="mb-2 block text-xs font-medium text-slate-400">
+            Quality
+          </label>
+
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                'draft',
+                'standard',
+                'cinematic',
+              ] as QualityLevel[]
+            ).map((level) => (
               <button
-                key={q}
+                key={level}
+                type="button"
                 disabled={disabled}
-                onClick={() => onQualityChange(q)}
-                className={cn(
-                  'flex-1 flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg border text-xs font-medium transition-all',
-                  quality === q
-                    ? 'bg-brand-600/15 border-brand-600/50'
-                    : 'bg-dark-card border-dark-border hover:border-dark-borderLight',
-                  disabled && 'opacity-50 cursor-not-allowed'
-                )}
+                onClick={() =>
+                  onQualityChange(
+                    level
+                  )
+                }
+                className={`rounded-lg border px-3 py-2 text-xs font-medium capitalize transition ${
+                  quality === level
+                    ? 'border-brand-500/50 bg-brand-500/10 text-brand-300'
+                    : 'border-dark-border bg-dark-surface text-slate-400 hover:border-slate-600 hover:text-white'
+                } ${
+                  disabled
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer'
+                }`}
               >
-                <span className={quality === q ? info.color : 'text-slate-400'}>{info.label}</span>
-                <span className="text-[9px] text-dark-muted">{info.desc}</span>
+                {level}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Advanced toggle */}
-      <button
-        onClick={() => setShowAdvanced(v => !v)}
-        className="flex items-center gap-1.5 text-[11px] text-dark-muted hover:text-slate-300 transition-colors w-fit"
-      >
-        {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        Advanced options
-      </button>
+      <div className="h-px bg-dark-border" />
 
-      {/* Seed */}
-      {showAdvanced && (
+      {/* ================================================== */}
+      {/* CAMERA */}
+      {/* ================================================== */}
+
+      <section>
+        <div className="mb-4 flex items-center gap-2">
+          <Camera
+            size={15}
+            className="text-brand-400"
+          />
+
+          <h3 className="text-xs font-semibold text-white">
+            Camera
+          </h3>
+        </div>
+
+        {/* CAMERA MOVEMENT */}
+
         <div>
-          <SectionLabel>Seed</SectionLabel>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-dark-muted pointer-events-none" />
-              <input
-                type="number"
-                value={seed ?? ''}
-                onChange={e => onSeedChange(e.target.value ? Number(e.target.value) : null)}
-                disabled={disabled}
-                placeholder="Random"
-                className="w-full bg-dark-card border border-dark-border rounded-lg pl-7 pr-8 py-2 text-xs text-slate-300 placeholder-dark-muted focus:outline-none focus:border-brand-600/50 disabled:opacity-50"
-              />
-              {seed !== null && (
-                <button
-                  onClick={onClearSeed}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-muted hover:text-slate-300"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={onRandomiseSeed}
+          <label className="mb-2 block text-xs font-medium text-slate-400">
+            Camera movement
+          </label>
+
+          <div className="relative">
+            <Move3d
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+
+            <select
+              value={cameraMovement}
               disabled={disabled}
-              title="Random seed"
-              className="px-2.5 py-2 rounded-lg bg-dark-card border border-dark-border text-dark-muted hover:text-slate-300 hover:border-dark-borderLight transition-all disabled:opacity-50"
+              onChange={(event) =>
+                onCameraMovementChange(
+                  event.target
+                    .value as CameraMove
+                )
+              }
+              className="w-full appearance-none rounded-xl border border-dark-border bg-dark-surface py-2.5 pl-9 pr-9 text-sm text-white outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Shuffle className="w-4 h-4" />
+              {cameraMoves.map(
+                (movement) => (
+                  <option
+                    key={
+                      movement.value
+                    }
+                    value={
+                      movement.value
+                    }
+                  >
+                    {movement.label}
+                  </option>
+                )
+              )}
+            </select>
+
+            <ChevronDown
+              size={15}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+          </div>
+        </div>
+
+        {/* CAMERA SPEED */}
+
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Gauge
+                size={14}
+                className="text-slate-500"
+              />
+
+              <label className="text-xs font-medium text-slate-400">
+                Camera speed
+              </label>
+            </div>
+
+            <span className="text-xs font-semibold text-white">
+              {cameraSpeed}%
+            </span>
+          </div>
+
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={cameraSpeed}
+            disabled={disabled}
+            onChange={(event) =>
+              onCameraSpeedChange(
+                Number(event.target.value)
+              )
+            }
+            className="w-full accent-brand-500"
+          />
+
+          <div className="mt-1 flex justify-between text-[10px] text-slate-600">
+            <span>Slow</span>
+            <span>Fast</span>
+          </div>
+        </div>
+
+        {/* LENS */}
+
+        <div className="mt-5">
+          <label className="mb-2 block text-xs font-medium text-slate-400">
+            Lens
+          </label>
+
+          <div className="grid grid-cols-3 gap-2">
+            {lenses.map(
+              (lensValue) => (
+                <button
+                  key={lensValue}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    onLensChange(
+                      lensValue
+                    )
+                  }
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                    lens === lensValue
+                      ? 'border-brand-500/50 bg-brand-500/10 text-brand-300'
+                      : 'border-dark-border bg-dark-surface text-slate-400 hover:border-slate-600 hover:text-white'
+                  } ${
+                    disabled
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'cursor-pointer'
+                  }`}
+                >
+                  {lensValue}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* APERTURE */}
+
+        <div className="mt-5">
+          <label className="mb-2 block text-xs font-medium text-slate-400">
+            Aperture
+          </label>
+
+          <div className="relative">
+            <select
+              value={aperture}
+              disabled={disabled}
+              onChange={(event) =>
+                onApertureChange(
+                  event.target
+                    .value as ApertureValue
+                )
+              }
+              className="w-full appearance-none rounded-xl border border-dark-border bg-dark-surface px-3 py-2.5 pr-9 text-sm text-white outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {apertures.map(
+                (apertureValue) => (
+                  <option
+                    key={
+                      apertureValue
+                    }
+                    value={
+                      apertureValue
+                    }
+                  >
+                    {apertureValue}
+                  </option>
+                )
+              )}
+            </select>
+
+            <ChevronDown
+              size={15}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+          </div>
+        </div>
+
+        {/* ================================================== */}
+        {/* IMAGE STABILIZATION */}
+        {/* ================================================== */}
+
+        <div className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-dark-border bg-dark-surface p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <RefreshCw
+                size={14}
+                className="shrink-0 text-slate-500"
+              />
+
+              <p className="text-xs font-medium text-slate-300">
+                Image Stabilization
+              </p>
+
+              <div className="group relative">
+                <CircleHelp
+                  size={12}
+                  className="cursor-help text-slate-600"
+                />
+
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-52 -translate-x-1/2 rounded-lg border border-dark-border bg-[#111318] p-2.5 text-[10px] leading-4 text-slate-400 shadow-xl group-hover:block">
+                  Keeps the composition
+                  controlled and reduces
+                  simulated camera shake.
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-1 max-w-sm text-[10px] leading-4 text-slate-500">
+              {stabilization
+                ? 'Stable and controlled camera composition.'
+                : 'Natural handheld camera variation.'}
+            </p>
+          </div>
+
+          {/* ================================================== */}
+          {/* FIXED TOGGLE */}
+          {/* ================================================== */}
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={
+              stabilization
+            }
+            aria-label="Toggle image stabilization"
+            disabled={disabled}
+            onClick={() =>
+              onStabilizationChange(
+                !stabilization
+              )
+            }
+            className={`relative flex h-6 w-11 shrink-0 items-center rounded-full border p-0.5 transition-colors duration-200 ${
+              stabilization
+                ? 'border-brand-500 bg-brand-500'
+                : 'border-dark-border bg-[#202329]'
+            } ${
+              disabled
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer'
+            }`}
+          >
+            <span
+              className={`block h-4 w-4 shrink-0 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                stabilization
+                  ? 'translate-x-5'
+                  : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </section>
+
+      <div className="h-px bg-dark-border" />
+
+      {/* ================================================== */}
+      {/* ADVANCED */}
+      {/* ================================================== */}
+
+      <section>
+        <div className="mb-4 flex items-center gap-2">
+          <KeyRound
+            size={15}
+            className="text-brand-400"
+          />
+
+          <h3 className="text-xs font-semibold text-white">
+            Advanced
+          </h3>
+        </div>
+
+        <div className="rounded-xl border border-dark-border bg-dark-surface p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-300">
+                Seed
+              </p>
+
+              <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                Use the same seed for more
+                repeatable results.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={
+                onRandomiseSeed
+              }
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-dark-border bg-[#111318] px-2.5 py-1.5 text-[10px] font-medium text-slate-400 transition hover:border-brand-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw
+                size={11}
+              />
+
+              Random
             </button>
           </div>
-          <p className="text-[10px] text-dark-muted mt-1">Use the same seed to reproduce results</p>
+
+          <div className="mt-3 flex gap-2">
+            <input
+              type="number"
+              value={
+                seed === null
+                  ? ''
+                  : seed
+              }
+              disabled={disabled}
+              placeholder="Random"
+              onChange={(event) => {
+                const value =
+                  event.target.value;
+
+                if (
+                  value === ''
+                ) {
+                  onSeedChange(
+                    null
+                  );
+                  return;
+                }
+
+                const parsed =
+                  Number(value);
+
+                if (
+                  Number.isFinite(
+                    parsed
+                  )
+                ) {
+                  onSeedChange(
+                    Math.max(
+                      0,
+                      Math.floor(
+                        parsed
+                      )
+                    )
+                  );
+                }
+              }}
+              className="min-w-0 flex-1 rounded-lg border border-dark-border bg-[#111318] px-3 py-2 text-xs text-white outline-none placeholder:text-slate-600 focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+
+            {seed !== null && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={
+                  onClearSeed
+                }
+                className="rounded-lg border border-dark-border bg-[#111318] px-3 text-xs text-slate-500 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </section>
     </div>
   );
 }

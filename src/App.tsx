@@ -11,7 +11,6 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
-  Settings2,
   ShoppingBag,
   Share2,
   Sparkles,
@@ -33,29 +32,50 @@ type PreviewItem = GeneratedItem;
 function App() {
   const studio = useStudio();
 
-  const [previewItem, setPreviewItem] = useState<PreviewItem | null>(null);
-  const [upscaleItem, setUpscaleItem] = useState<PreviewItem | null>(null);
-  const [enhancing, setEnhancing] = useState(false);
-  const [enhanced, setEnhanced] = useState(false);
-  const [showProPlan, setShowProPlan] = useState(false);
+  const [previewItem, setPreviewItem] =
+    useState<PreviewItem | null>(null);
 
-  const selectedUpscale = upscaleItem || studio.currentResult;
+  const [upscaleItem, setUpscaleItem] =
+    useState<PreviewItem | null>(null);
+
+  const [enhancing, setEnhancing] =
+    useState(false);
+
+  const [enhanced, setEnhanced] =
+    useState(false);
+
+  const [showProPlan, setShowProPlan] =
+    useState(false);
+
+  const selectedUpscale =
+    upscaleItem || studio.currentResult;
 
   const activeModel = useMemo(() => {
     return studio.models.find(
-      model => model.id === studio.params.modelId
+      model =>
+        model.id === studio.params.modelId
     );
-  }, [studio.models, studio.params.modelId]);
+  }, [
+    studio.models,
+    studio.params.modelId,
+  ]);
 
   useEffect(() => {
     if (!studio.currentResult) return;
 
     if (!upscaleItem) {
-      setUpscaleItem(studio.currentResult);
+      setUpscaleItem(
+        studio.currentResult
+      );
     }
-  }, [studio.currentResult, upscaleItem]);
+  }, [
+    studio.currentResult,
+    upscaleItem,
+  ]);
 
-  const openPreview = (item: PreviewItem) => {
+  const openPreview = (
+    item: PreviewItem
+  ) => {
     setPreviewItem(item);
   };
 
@@ -65,20 +85,24 @@ function App() {
 
   const handleNewGeneration = () => {
     studio.cancelGeneration();
-    studio.setPrompt('');
-    studio.setNavSection('cinema');
+    studio.resetStudio();
 
     setPreviewItem(null);
     setUpscaleItem(null);
     setEnhancing(false);
     setEnhanced(false);
+
+    studio.setNavSection('cinema');
   };
 
-  const openUpscale = (item: PreviewItem) => {
+  const openUpscale = (
+    item: PreviewItem
+  ) => {
     setUpscaleItem(item);
     setEnhanced(false);
     setEnhancing(false);
     setPreviewItem(null);
+
     studio.setNavSection('upscale');
   };
 
@@ -94,35 +118,61 @@ function App() {
     }, 1800);
   };
 
-  const handleDelete = (item: PreviewItem) => {
+  const handleDelete = (
+    item: PreviewItem
+  ) => {
     studio.deleteItem(item.id);
     setPreviewItem(null);
 
-    if (upscaleItem?.id === item.id) {
+    if (
+      upscaleItem?.id === item.id
+    ) {
       setUpscaleItem(null);
     }
   };
 
-  const handleCreateVariation = (item: PreviewItem) => {
-    studio.setPrompt(item.params.prompt);
+  const handleCreateVariation = (
+    item: PreviewItem
+  ) => {
+    studio.setPrompt(
+      item.params.prompt
+    );
+
     setPreviewItem(null);
     studio.setNavSection('cinema');
   };
 
-  const handleDownload = (item: PreviewItem) => {
-    const url = item.mediaUrl || item.thumbnailUrl;
+  const handleDownload = (
+    item: PreviewItem
+  ) => {
+    const url =
+      item.mediaUrl ||
+      item.thumbnailUrl;
 
     if (!url) return;
 
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(
+      url,
+      '_blank',
+      'noopener,noreferrer'
+    );
   };
 
   const renderCinemaStudio = () => {
+    const isBusy =
+      studio.status === 'queued' ||
+      studio.status === 'generating' ||
+      studio.status === 'upscaling';
+
     return (
       <div className="min-h-screen">
+        {/* HEADER */}
         <header className="sticky top-0 z-[60] flex h-16 items-center justify-between border-b border-dark-border bg-dark-bg/95 px-6 backdrop-blur">
           <div>
-            <p className="text-xs text-slate-500">Workspace</p>
+            <p className="text-xs text-slate-500">
+              Workspace
+            </p>
+
             <h1 className="text-lg font-semibold text-white">
               Cinema Studio
             </h1>
@@ -131,11 +181,16 @@ function App() {
           <div className="relative z-[100] flex items-center gap-3 pointer-events-auto">
             <button
               type="button"
-              onClick={() => setShowProPlan(true)}
+              onClick={() =>
+                setShowProPlan(true)
+              }
               className="hidden cursor-pointer items-center rounded-lg border border-dark-border bg-dark-card px-3 py-2 text-left transition hover:border-brand-500/40 hover:bg-brand-500/5 sm:flex"
             >
               <div className="flex items-center gap-2">
-                <Zap size={14} className="text-brand-400" />
+                <Zap
+                  size={14}
+                  className="text-brand-400"
+                />
 
                 <span className="text-xs font-medium text-white">
                   Pro Plan
@@ -162,7 +217,8 @@ function App() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-6 py-8">
+        <main className="mx-auto max-w-5xl px-6 py-8">
+          {/* HERO */}
           <section className="mb-8">
             <div className="max-w-3xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-300">
@@ -175,379 +231,643 @@ function App() {
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-                Create images and videos with controlled composition,
-                camera movement, visual style and generation settings.
+                Create images and videos with controlled
+                composition, camera movement, visual style
+                and generation settings.
               </p>
             </div>
           </section>
 
+          {/* WORKFLOW */}
           <section className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               ['01', 'Create', 'Describe your scene'],
               ['02', 'Refine', 'Tune style & camera'],
               ['03', 'Review', 'Compare generations'],
               ['04', 'Enhance', 'Upscale the final'],
-            ].map(([number, title, description]) => (
-              <div
-                key={number}
-                className="rounded-xl border border-dark-border bg-dark-card p-4"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-brand-400">
-                    {number}
-                  </span>
-                  <ChevronRight
-                    size={14}
-                    className="text-slate-600"
-                  />
-                </div>
-
-                <p className="text-sm font-semibold text-white">
-                  {title}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  {description}
-                </p>
-              </div>
-            ))}
-          </section>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <section className="space-y-6">
-              <div className="overflow-hidden rounded-2xl border border-dark-border bg-dark-card">
-                <div className="flex items-center justify-between border-b border-dark-border px-5 py-4">
-                  <div>
-                    <h3 className="text-sm font-semibold text-white">
-                      Preview
-                    </h3>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Your latest generation
-                    </p>
-                  </div>
-
-                  {studio.currentResult && (
-                    <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
-                      {studio.status === 'generating'
-                        ? 'Generating'
-                        : 'Ready'}
+            ].map(
+              ([
+                number,
+                title,
+                description,
+              ]) => (
+                <div
+                  key={number}
+                  className="rounded-xl border border-dark-border bg-dark-card p-4"
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-brand-400">
+                      {number}
                     </span>
-                  )}
-                </div>
 
-                <div className="relative min-h-[390px] bg-[#08090b]">
-                  {studio.currentResult ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openPreview(
-                          studio.currentResult as PreviewItem
-                        )
-                      }
-                      className="group relative block h-full min-h-[390px] w-full"
-                    >
-                      <img
-                        src={
-                          studio.currentResult.mediaUrl ||
-                          studio.currentResult.thumbnailUrl
-                        }
-                        alt={studio.currentResult.title}
-                        className="absolute inset-0 h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
-                      />
-
-                      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 opacity-0 transition group-hover:opacity-100">
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-white">
-                            {studio.currentResult.title}
-                          </p>
-
-                          <p className="mt-1 text-xs text-slate-300">
-                            Click to inspect
-                          </p>
-                        </div>
-
-                        <span className="rounded-lg bg-white/10 p-2 text-white backdrop-blur">
-                          <Expand size={16} />
-                        </span>
-                      </div>
-                    </button>
-                  ) : (
-                    <div className="flex min-h-[390px] flex-col items-center justify-center px-6 text-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-dark-border bg-dark-surface">
-                        <Film
-                          size={24}
-                          className="text-slate-500"
-                        />
-                      </div>
-
-                      <h3 className="text-sm font-semibold text-white">
-                        Your creation will appear here
-                      </h3>
-
-                      <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
-                        Describe a scene, select your settings and
-                        generate your first cinematic result.
-                      </p>
-                    </div>
-                  )}
-
-                  {studio.status === 'generating' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/65 backdrop-blur-sm">
-                      <div className="w-72 rounded-2xl border border-white/10 bg-black/80 p-5">
-                        <div className="mb-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-white">
-                              Creating your scene
-                            </p>
-
-                            <p className="mt-1 text-xs text-slate-500">
-                              Rendering with{' '}
-                              {activeModel?.name || 'AI model'}
-                            </p>
-                          </div>
-
-                          <Sparkles
-                            size={18}
-                            className="text-brand-400"
-                          />
-                        </div>
-
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full rounded-full bg-brand-500 transition-all duration-300"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                Math.max(5, studio.progress)
-                              )}%`,
-                            }}
-                          />
-                        </div>
-
-                        <p className="mt-2 text-right text-[10px] text-slate-500">
-                          {Math.round(studio.progress)}%
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <PromptPanel
-                prompt={studio.params.prompt}
-                onPromptChange={studio.setPrompt}
-                negativePrompt={studio.params.negativePrompt}
-                onNegativePromptChange={
-                  studio.setNegativePrompt
-                }
-                enhance={studio.params.enhance}
-                onEnhanceToggle={studio.setEnhance}
-                activeStyle={studio.params.stylePreset}
-                onStyleChange={studio.setStylePreset}
-                disabled={studio.status === 'generating'}
-              />
-
-              <div className="rounded-2xl border border-dark-border bg-dark-card p-5">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-white">
-                      Generation settings
-                    </h3>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Fine-tune the output before rendering.
-                    </p>
+                    <ChevronRight
+                      size={14}
+                      className="text-slate-600"
+                    />
                   </div>
 
-                  <Settings2
-                    size={18}
-                    className="text-slate-500"
-                  />
-                </div>
-
-                <div className="mb-5">
-                  <label className="mb-2 block text-xs font-medium text-slate-400">
-                    AI Model
-                  </label>
-
-                  <select
-                    value={studio.params.modelId}
-                    onChange={event =>
-                      studio.setModelId(event.target.value)
-                    }
-                    disabled={studio.status === 'generating'}
-                    className="w-full rounded-xl border border-dark-border bg-dark-surface px-3 py-2.5 text-sm text-white outline-none transition focus:border-brand-500"
-                  >
-                    {studio.models.map(model => (
-                      <option key={model.id} value={model.id}>
-                        {model.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  {activeModel?.description && (
-                    <p className="mt-2 text-xs text-slate-500">
-                      {activeModel.description}
-                    </p>
-                  )}
-                </div>
-
-                <GenerationControls
-                  model={activeModel || studio.models[0]}
-                  aspectRatio={studio.params.aspectRatio}
-                  onAspectRatioChange={studio.setAspectRatio}
-                  duration={studio.params.duration}
-                  onDurationChange={studio.setDuration}
-                  quality={studio.params.quality}
-                  onQualityChange={studio.setQuality}
-                  seed={studio.params.seed}
-                  onSeedChange={studio.setSeed}
-                  onRandomiseSeed={studio.randomiseSeed}
-                  onClearSeed={studio.clearSeed}
-                  disabled={studio.status === 'generating'}
-                />
-
-                <div className="mt-6 flex items-center gap-3">
-                  {studio.status === 'generating' ? (
-                    <button
-                      type="button"
-                      onClick={studio.cancelGeneration}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/15"
-                    >
-                      <X size={16} />
-                      Cancel generation
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={studio.generate}
-                      disabled={!studio.params.prompt.trim()}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Sparkles size={16} />
-                      Generate
-                    </button>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <aside className="space-y-6">
-              <div className="rounded-2xl border border-dark-border bg-dark-card p-5">
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-white">
-                    Quick start
-                  </h3>
+                  <p className="text-sm font-semibold text-white">
+                    {title}
+                  </p>
 
                   <p className="mt-1 text-xs text-slate-500">
-                    Start from a creative direction.
+                    {description}
                   </p>
                 </div>
+              )
+            )}
+          </section>
 
-                <div className="space-y-2">
-                  {[
-                    [
-                      'Cinematic portrait',
-                      'A cinematic close-up portrait, soft dramatic lighting, shallow depth of field, premium film look',
-                    ],
-                    [
-                      'Product campaign',
-                      'A premium product campaign scene, studio lighting, elegant composition, high-end commercial photography',
-                    ],
-                    [
-                      'Futuristic city',
-                      'A futuristic city at night, neon reflections, cinematic atmosphere, wide establishing shot',
-                    ],
-                  ].map(([title, prompt]) => (
-                    <button
-                      type="button"
-                      key={title}
-                      onClick={() => studio.setPrompt(prompt)}
-                      className="flex w-full items-center justify-between rounded-xl border border-dark-border bg-dark-surface px-3 py-3 text-left transition hover:border-brand-500/40 hover:bg-brand-500/5"
-                    >
-                      <div>
-                        <p className="text-xs font-medium text-white">
-                          {title}
-                        </p>
+          {/* ================================================== */}
+          {/* 01 - PROMPT */}
+          {/* ================================================== */}
 
-                        <p className="mt-1 line-clamp-1 text-[10px] text-slate-500">
-                          {prompt}
-                        </p>
-                      </div>
+          <section className="mb-6">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/10 text-[10px] font-bold text-brand-400">
+                01
+              </span>
 
-                      <ChevronRight
-                        size={15}
-                        className="shrink-0 text-slate-600"
-                      />
-                    </button>
-                  ))}
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Prompt
+                </h2>
+
+                <p className="text-[11px] text-slate-500">
+                  Describe what you want to create.
+                </p>
+              </div>
+            </div>
+
+            <PromptPanel
+              prompt={
+                studio.params.prompt
+              }
+              onPromptChange={
+                studio.setPrompt
+              }
+              negativePrompt={
+                studio.params.negativePrompt
+              }
+              onNegativePromptChange={
+                studio.setNegativePrompt
+              }
+              enhance={
+                studio.params.enhance
+              }
+              onEnhanceToggle={
+                studio.setEnhance
+              }
+              activeStyle={
+                studio.params.stylePreset
+              }
+              onStyleChange={
+                studio.setStylePreset
+              }
+              disabled={isBusy}
+            />
+          </section>
+
+          {/* ================================================== */}
+          {/* 02 - GENERATION SETTINGS */}
+          {/* ================================================== */}
+
+          <section className="mb-6">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/10 text-[10px] font-bold text-brand-400">
+                02
+              </span>
+
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Generation Settings
+                </h2>
+
+                <p className="text-[11px] text-slate-500">
+                  Fine-tune the output before rendering.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-dark-border bg-dark-card p-5">
+              {/* MODEL */}
+              <div className="mb-6">
+                <label className="mb-2 block text-xs font-medium text-slate-400">
+                  AI Model
+                </label>
+
+                <select
+                  value={
+                    studio.params.modelId
+                  }
+                  onChange={event =>
+                    studio.setModelId(
+                      event.target.value
+                    )
+                  }
+                  disabled={isBusy}
+                  className="w-full rounded-xl border border-dark-border bg-dark-surface px-3 py-2.5 text-sm text-white outline-none transition focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {studio.models.map(
+                    model => (
+                      <option
+                        key={model.id}
+                        value={model.id}
+                      >
+                        {model.name}
+                      </option>
+                    )
+                  )}
+                </select>
+
+                {activeModel?.description && (
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    {activeModel.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="mb-5 h-px bg-dark-border" />
+
+              <GenerationControls
+                model={
+                  activeModel ||
+                  studio.models[0]
+                }
+                aspectRatio={
+                  studio.params.aspectRatio
+                }
+                onAspectRatioChange={
+                  studio.setAspectRatio
+                }
+                duration={
+                  studio.params.duration
+                }
+                onDurationChange={
+                  studio.setDuration
+                }
+                quality={
+                  studio.params.quality
+                }
+                onQualityChange={
+                  studio.setQuality
+                }
+                seed={
+                  studio.params.seed
+                }
+                onSeedChange={
+                  studio.setSeed
+                }
+                onRandomiseSeed={
+                  studio.randomiseSeed
+                }
+                onClearSeed={
+                  studio.clearSeed
+                }
+                cameraMovement={
+                  studio.params.camera
+                    .movement
+                }
+                onCameraMovementChange={
+                  studio.setCameraMovement
+                }
+                cameraSpeed={
+                  studio.params.camera
+                    .speed
+                }
+                onCameraSpeedChange={
+                  studio.setCameraSpeed
+                }
+                lens={
+                  studio.params.camera
+                    .lens
+                }
+                onLensChange={
+                  studio.setLens
+                }
+                aperture={
+                  studio.params.camera
+                    .aperture
+                }
+                onApertureChange={
+                  studio.setAperture
+                }
+                stabilization={
+                  studio.params.camera
+                    .stabilization
+                }
+                onStabilizationChange={
+                  studio.setStabilization
+                }
+                disabled={isBusy}
+              />
+
+              {/* GENERATE */}
+              <div className="mt-7 border-t border-dark-border pt-5">
+                {isBusy ? (
+                  <button
+                    type="button"
+                    onClick={
+                      studio.cancelGeneration
+                    }
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/15"
+                  >
+                    <X size={16} />
+                    Cancel generation
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={
+                      studio.generate
+                    }
+                    disabled={
+                      !studio.params.prompt.trim()
+                    }
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Sparkles size={16} />
+                    Generate
+                  </button>
+                )}
+
+                {!studio.params.prompt.trim() &&
+                  !isBusy && (
+                    <p className="mt-2 text-center text-[10px] text-slate-600">
+                      Add a prompt above to start generating.
+                    </p>
+                  )}
+              </div>
+            </div>
+          </section>
+
+          {/* ================================================== */}
+          {/* 03 - PREVIEW */}
+          {/* ================================================== */}
+
+          <section className="mb-6">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/10 text-[10px] font-bold text-brand-400">
+                  03
+                </span>
+
+                <div>
+                  <h2 className="text-sm font-semibold text-white">
+                    Preview
+                  </h2>
+
+                  <p className="text-[11px] text-slate-500">
+                    Your latest generation.
+                  </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-dark-border bg-dark-card p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-white">
-                      Recent creations
-                    </h3>
+              {studio.currentResult && (
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-[10px] font-medium ${
+                    isBusy
+                      ? 'border-brand-500/20 bg-brand-500/10 text-brand-400'
+                      : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                  }`}
+                >
+                  {isBusy ? 'Generating' : 'Ready'}
+                </span>
+              )}
+            </div>
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      Continue where you left off.
-                    </p>
-                  </div>
-
+            <div className="overflow-hidden rounded-2xl border border-dark-border bg-dark-card">
+              <div className="relative min-h-[500px] bg-[#08090b]">
+                {studio.currentResult ? (
                   <button
                     type="button"
-                    onClick={() => studio.setNavSection('gallery')}
-                    className="text-xs font-medium text-brand-400 hover:text-brand-300"
+                    onClick={() =>
+                      openPreview(
+                        studio.currentResult as PreviewItem
+                      )
+                    }
+                    className="group relative block min-h-[500px] w-full"
                   >
-                    View all
-                  </button>
-                </div>
-
-                {studio.history.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {studio.history.slice(0, 4).map(item => (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => openPreview(item)}
-                        className="group relative aspect-square overflow-hidden rounded-xl border border-dark-border bg-dark-surface"
-                      >
-                        <img
-                          src={
-                            item.thumbnailUrl || item.mediaUrl
-                          }
-                          alt={item.title}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-
-                        <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/30" />
-
-                        <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-black/60 px-2 py-1 opacity-0 backdrop-blur transition group-hover:opacity-100">
-                          <p className="truncate text-[10px] text-white">
-                            {item.title}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-dark-border p-6 text-center">
-                    <Images
-                      size={22}
-                      className="mx-auto text-slate-600"
+                    <img
+                      src={
+                        studio.currentResult
+                          .mediaUrl ||
+                        studio.currentResult
+                          .thumbnailUrl
+                      }
+                      alt={
+                        studio.currentResult
+                          .title
+                      }
+                      className="absolute inset-0 h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
                     />
 
-                    <p className="mt-2 text-xs text-slate-500">
-                      No creations yet.
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 opacity-0 transition group-hover:opacity-100">
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-white">
+                          {
+                            studio
+                              .currentResult
+                              .title
+                          }
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-300">
+                          Click to inspect
+                        </p>
+                      </div>
+
+                      <span className="rounded-lg bg-white/10 p-2 text-white backdrop-blur">
+                        <Expand size={16} />
+                      </span>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="flex min-h-[500px] flex-col items-center justify-center px-6 text-center">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-dark-border bg-dark-surface">
+                      <Film
+                        size={26}
+                        className="text-slate-500"
+                      />
+                    </div>
+
+                    <h3 className="text-sm font-semibold text-white">
+                      Your creation will appear here
+                    </h3>
+
+                    <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+                      Describe a scene, configure your
+                      generation settings and click Generate.
                     </p>
                   </div>
                 )}
+
+                {isBusy && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/65 backdrop-blur-sm">
+                    <div className="w-80 rounded-2xl border border-white/10 bg-black/80 p-5 shadow-2xl">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {studio.status ===
+                            'queued'
+                              ? 'Queued'
+                              : studio.status ===
+                                  'upscaling'
+                                ? 'Finalizing'
+                                : 'Creating your scene'}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            Rendering with{' '}
+                            {activeModel?.name ||
+                              'AI model'}
+                          </p>
+                        </div>
+
+                        <Sparkles
+                          size={18}
+                          className="text-brand-400"
+                        />
+                      </div>
+
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-brand-500 transition-all duration-300"
+                          style={{
+                            width:
+                              `${Math.max(
+                                5,
+                                Math.min(
+                                  100,
+                                  studio.progress
+                                )
+                              )}%`,
+                          }}
+                        />
+                      </div>
+
+                      <p className="mt-2 text-right text-[10px] text-slate-500">
+                        {Math.round(
+                          studio.progress
+                        )}
+                        %
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            </aside>
-          </div>
+
+              {studio.currentResult && (
+                <div className="flex flex-wrap items-center gap-2 border-t border-dark-border bg-dark-card p-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openPreview(
+                        studio.currentResult as PreviewItem
+                      )
+                    }
+                    className="flex items-center gap-2 rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-brand-500/30 hover:text-white"
+                  >
+                    <Expand size={14} />
+                    Inspect
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openUpscale(
+                        studio.currentResult as PreviewItem
+                      )
+                    }
+                    className="flex items-center gap-2 rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-brand-500/30 hover:text-white"
+                  >
+                    <WandSparkles size={14} />
+                    Upscale
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDownload(
+                        studio.currentResult as PreviewItem
+                      )
+                    }
+                    className="flex items-center gap-2 rounded-lg border border-dark-border bg-dark-surface px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-brand-500/30 hover:text-white"
+                  >
+                    <Download size={14} />
+                    Download
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      studio.toggleLike(
+                        studio.currentResult!.id
+                      )
+                    }
+                    className={`ml-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                      studio.currentResult
+                        .liked
+                        ? 'border-brand-500/30 bg-brand-500/10 text-brand-400'
+                        : 'border-dark-border bg-dark-surface text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    {studio.currentResult
+                      .liked && (
+                      <Check size={14} />
+                    )}
+
+                    {studio.currentResult
+                      .liked
+                      ? 'Saved'
+                      : 'Save'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ================================================== */}
+          {/* QUICK START */}
+          {/* ================================================== */}
+
+          <section className="mb-6">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/10 text-[10px] font-bold text-brand-400">
+                04
+              </span>
+
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Quick Start
+                </h2>
+
+                <p className="text-[11px] text-slate-500">
+                  Start with a creative direction.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                [
+                  'Cinematic portrait',
+                  'A cinematic close-up portrait, soft dramatic lighting, shallow depth of field, premium film look',
+                ],
+                [
+                  'Product campaign',
+                  'A premium product campaign scene, studio lighting, elegant composition, high-end commercial photography',
+                ],
+                [
+                  'Futuristic city',
+                  'A futuristic city at night, neon reflections, cinematic atmosphere, wide establishing shot',
+                ],
+              ].map(
+                ([title, prompt]) => (
+                  <button
+                    type="button"
+                    key={title}
+                    onClick={() =>
+                      studio.setPrompt(
+                        prompt
+                      )
+                    }
+                    className="flex items-center justify-between rounded-xl border border-dark-border bg-dark-card px-4 py-4 text-left transition hover:border-brand-500/40 hover:bg-brand-500/5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-white">
+                        {title}
+                      </p>
+
+                      <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-500">
+                        {prompt}
+                      </p>
+                    </div>
+
+                    <ChevronRight
+                      size={15}
+                      className="ml-3 shrink-0 text-slate-600"
+                    />
+                  </button>
+                )
+              )}
+            </div>
+          </section>
+
+          {/* ================================================== */}
+          {/* RECENT CREATIONS */}
+          {/* ================================================== */}
+
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-white">
+                  Recent Creations
+                </h2>
+
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Continue where you left off.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  studio.setNavSection(
+                    'gallery'
+                  )
+                }
+                className="text-xs font-medium text-brand-400 hover:text-brand-300"
+              >
+                View all
+              </button>
+            </div>
+
+            {studio.history.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {studio.history
+                  .slice(0, 4)
+                  .map(item => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() =>
+                        openPreview(item)
+                      }
+                      className="group relative aspect-square overflow-hidden rounded-xl border border-dark-border bg-dark-surface"
+                    >
+                      <img
+                        src={
+                          item.thumbnailUrl ||
+                          item.mediaUrl
+                        }
+                        alt={item.title}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+
+                      <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/30" />
+
+                      <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-black/60 px-2 py-1 opacity-0 backdrop-blur transition group-hover:opacity-100">
+                        <p className="truncate text-[10px] text-white">
+                          {item.title}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-dark-border p-8 text-center">
+                <Images
+                  size={22}
+                  className="mx-auto text-slate-600"
+                />
+
+                <p className="mt-2 text-xs text-slate-500">
+                  No creations yet.
+                </p>
+              </div>
+            )}
+          </section>
         </main>
       </div>
     );
@@ -578,7 +898,9 @@ function App() {
     return (
       <div className="min-h-screen">
         <header className="border-b border-dark-border px-6 py-5">
-          <p className="text-xs text-slate-500">Workspace</p>
+          <p className="text-xs text-slate-500">
+            Workspace
+          </p>
 
           <h1 className="mt-1 text-xl font-semibold text-white">
             Marketing Studio
@@ -604,7 +926,9 @@ function App() {
                       `Create a premium ${card.title.toLowerCase()} concept with polished commercial lighting, strong composition and a modern visual identity.`
                     );
 
-                    studio.setNavSection('cinema');
+                    studio.setNavSection(
+                      'cinema'
+                    );
                   }}
                   className="group rounded-2xl border border-dark-border bg-dark-card p-6 text-left transition hover:-translate-y-0.5 hover:border-brand-500/40"
                 >
@@ -637,7 +961,9 @@ function App() {
     return (
       <div className="min-h-screen">
         <header className="border-b border-dark-border px-6 py-5">
-          <p className="text-xs text-slate-500">Identity</p>
+          <p className="text-xs text-slate-500">
+            Identity
+          </p>
 
           <h1 className="mt-1 text-xl font-semibold text-white">
             Soul ID
@@ -669,7 +995,11 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => studio.setNavSection('cinema')}
+                onClick={() =>
+                  studio.setNavSection(
+                    'cinema'
+                  )
+                }
                 className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
               >
                 Use in Studio
@@ -678,23 +1008,34 @@ function App() {
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {[
-                ['Identity', 'Consistent subject appearance'],
-                ['Style', 'Reusable visual direction'],
-                ['Control', 'Better creative continuity'],
-              ].map(([title, description]) => (
-                <div
-                  key={title}
-                  className="rounded-xl border border-dark-border bg-dark-surface p-4"
-                >
-                  <p className="text-sm font-medium text-white">
-                    {title}
-                  </p>
+                [
+                  'Identity',
+                  'Consistent subject appearance',
+                ],
+                [
+                  'Style',
+                  'Reusable visual direction',
+                ],
+                [
+                  'Control',
+                  'Better creative continuity',
+                ],
+              ].map(
+                ([title, description]) => (
+                  <div
+                    key={title}
+                    className="rounded-xl border border-dark-border bg-dark-surface p-4"
+                  >
+                    <p className="text-sm font-medium text-white">
+                      {title}
+                    </p>
 
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {description}
-                  </p>
-                </div>
-              ))}
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {description}
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </main>
@@ -708,7 +1049,9 @@ function App() {
         <header className="border-b border-dark-border px-6 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500">Library</p>
+              <p className="text-xs text-slate-500">
+                Library
+              </p>
 
               <h1 className="mt-1 text-xl font-semibold text-white">
                 Gallery
@@ -728,38 +1071,43 @@ function App() {
         <main className="mx-auto max-w-7xl px-6 py-8">
           {studio.history.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {studio.history.map(item => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() => openPreview(item)}
-                  className="group relative overflow-hidden rounded-2xl border border-dark-border bg-dark-card text-left"
-                >
-                  <div className="aspect-square overflow-hidden bg-black">
-                    <img
-                      src={
-                        item.thumbnailUrl || item.mediaUrl
-                      }
-                      alt={item.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  </div>
+              {studio.history.map(
+                item => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() =>
+                      openPreview(item)
+                    }
+                    className="group relative overflow-hidden rounded-2xl border border-dark-border bg-dark-card text-left"
+                  >
+                    <div className="aspect-square overflow-hidden bg-black">
+                      <img
+                        src={
+                          item.thumbnailUrl ||
+                          item.mediaUrl
+                        }
+                        alt={item.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
 
-                  <div className="border-t border-dark-border p-3">
-                    <p className="truncate text-xs font-medium text-white">
-                      {item.title}
-                    </p>
+                    <div className="border-t border-dark-border p-3">
+                      <p className="truncate text-xs font-medium text-white">
+                        {item.title}
+                      </p>
 
-                    <p className="mt-1 truncate text-[10px] text-slate-500">
-                      {item.params.prompt}
-                    </p>
-                  </div>
+                      <p className="mt-1 truncate text-[10px] text-slate-500">
+                        {item.params.prompt}
+                      </p>
+                    </div>
 
-                  <div className="absolute right-3 top-3 rounded-lg bg-black/60 p-2 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
-                    <Expand size={14} />
-                  </div>
-                </button>
-              ))}
+                    <div className="absolute right-3 top-3 rounded-lg bg-black/60 p-2 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
+                      <Expand size={14} />
+                    </div>
+                  </button>
+                )
+              )}
             </div>
           ) : (
             <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-dark-border">
@@ -778,7 +1126,11 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => studio.setNavSection('cinema')}
+                onClick={() =>
+                  studio.setNavSection(
+                    'cinema'
+                  )
+                }
                 className="mt-5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
               >
                 Create first generation
@@ -794,7 +1146,9 @@ function App() {
     return (
       <div className="min-h-screen">
         <header className="border-b border-dark-border px-6 py-5">
-          <p className="text-xs text-slate-500">Enhancement</p>
+          <p className="text-xs text-slate-500">
+            Enhancement
+          </p>
 
           <h1 className="mt-1 text-xl font-semibold text-white">
             Upscale
@@ -825,7 +1179,11 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => studio.setNavSection('gallery')}
+                onClick={() =>
+                  studio.setNavSection(
+                    'gallery'
+                  )
+                }
                 className="mt-5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
               >
                 Open Gallery
@@ -861,14 +1219,18 @@ function App() {
                       selectedUpscale.mediaUrl ||
                       selectedUpscale.thumbnailUrl
                     }
-                    alt={selectedUpscale.title}
+                    alt={
+                      selectedUpscale.title
+                    }
                     className="max-h-[500px] max-w-full rounded-xl object-contain"
                     onError={event => {
-                      const image = event.currentTarget;
+                      const image =
+                        event.currentTarget;
 
                       if (
                         selectedUpscale.thumbnailUrl &&
-                        image.src !== selectedUpscale.thumbnailUrl
+                        image.src !==
+                          selectedUpscale.thumbnailUrl
                       ) {
                         image.src =
                           selectedUpscale.thumbnailUrl;
@@ -901,12 +1263,13 @@ function App() {
                     </div>
                   )}
 
-                  {enhanced && !enhancing && (
-                    <div className="absolute left-6 top-6 flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 backdrop-blur">
-                      <Check size={14} />
-                      Enhancement complete
-                    </div>
-                  )}
+                  {enhanced &&
+                    !enhancing && (
+                      <div className="absolute left-6 top-6 flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 backdrop-blur">
+                        <Check size={14} />
+                        Enhancement complete
+                      </div>
+                    )}
                 </div>
               </section>
 
@@ -966,9 +1329,17 @@ function App() {
                         defaultValue="high"
                         className="w-full rounded-xl border border-dark-border bg-dark-surface px-3 py-2.5 text-sm text-white outline-none"
                       >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
+                        <option value="low">
+                          Low
+                        </option>
+
+                        <option value="medium">
+                          Medium
+                        </option>
+
+                        <option value="high">
+                          High
+                        </option>
                       </select>
                     </div>
 
@@ -981,16 +1352,26 @@ function App() {
                         defaultValue="auto"
                         className="w-full rounded-xl border border-dark-border bg-dark-surface px-3 py-2.5 text-sm text-white outline-none"
                       >
-                        <option value="auto">Auto</option>
-                        <option value="on">Always on</option>
-                        <option value="off">Off</option>
+                        <option value="auto">
+                          Auto
+                        </option>
+
+                        <option value="on">
+                          Always on
+                        </option>
+
+                        <option value="off">
+                          Off
+                        </option>
                       </select>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleEnhance}
+                    onClick={
+                      handleEnhance
+                    }
                     disabled={enhancing}
                     className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -1027,24 +1408,36 @@ function App() {
                         selectedUpscale.thumbnailUrl ||
                         selectedUpscale.mediaUrl
                       }
-                      alt={selectedUpscale.title}
+                      alt={
+                        selectedUpscale.title
+                      }
                       className="h-16 w-16 rounded-lg object-cover"
                     />
 
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-white">
-                        {selectedUpscale.title}
+                        {
+                          selectedUpscale.title
+                        }
                       </p>
 
                       <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-500">
-                        {selectedUpscale.params.prompt}
+                        {
+                          selectedUpscale
+                            .params
+                            .prompt
+                        }
                       </p>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => openPreview(selectedUpscale)}
+                    onClick={() =>
+                      openPreview(
+                        selectedUpscale
+                      )
+                    }
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-dark-border px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-dark-surface hover:text-white"
                   >
                     <Expand size={14} />
@@ -1086,26 +1479,37 @@ function App() {
         onChange={studio.setNavSection}
         open={studio.sidebarOpen}
         onToggle={() =>
-          studio.setSidebarOpen(!studio.sidebarOpen)
+          studio.setSidebarOpen(
+            !studio.sidebarOpen
+          )
         }
-        historyCount={studio.history.length}
+        historyCount={
+          studio.history.length
+        }
       />
 
       <main
         className={`min-h-screen transition-all duration-200 ${
-          studio.sidebarOpen ? 'ml-64' : 'ml-20'
+          studio.sidebarOpen
+            ? 'ml-64'
+            : 'ml-20'
         }`}
       >
         {renderSection()}
       </main>
 
-      {/* Preview Modal */}
+      {/* ====================================================== */}
+      {/* PREVIEW MODAL */}
+      {/* ====================================================== */}
+
       {previewItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
           <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0c0f] shadow-2xl lg:flex-row">
             <button
               type="button"
-              onClick={closePreview}
+              onClick={
+                closePreview
+              }
               className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg bg-black/60 text-slate-300 backdrop-blur transition hover:text-white"
             >
               <X size={18} />
@@ -1117,16 +1521,21 @@ function App() {
                   previewItem.mediaUrl ||
                   previewItem.thumbnailUrl
                 }
-                alt={previewItem.title}
+                alt={
+                  previewItem.title
+                }
                 className="max-h-[78vh] max-w-full rounded-lg object-contain"
                 onError={event => {
-                  const image = event.currentTarget;
+                  const image =
+                    event.currentTarget;
 
                   if (
                     previewItem.thumbnailUrl &&
-                    image.src !== previewItem.thumbnailUrl
+                    image.src !==
+                      previewItem.thumbnailUrl
                   ) {
-                    image.src = previewItem.thumbnailUrl;
+                    image.src =
+                      previewItem.thumbnailUrl;
                   }
                 }}
               />
@@ -1140,11 +1549,16 @@ function App() {
                   </p>
 
                   <h2 className="mt-2 text-lg font-semibold text-white">
-                    {previewItem.title}
+                    {
+                      previewItem.title
+                    }
                   </h2>
 
                   <p className="mt-2 text-xs leading-5 text-slate-500">
-                    {previewItem.params.prompt}
+                    {
+                      previewItem
+                        .params.prompt
+                    }
                   </p>
                 </div>
 
@@ -1155,7 +1569,11 @@ function App() {
                     </p>
 
                     <p className="mt-1 truncate text-xs font-medium text-white">
-                      {previewItem.params.modelId}
+                      {
+                        previewItem
+                          .params
+                          .modelId
+                      }
                     </p>
                   </div>
 
@@ -1165,7 +1583,11 @@ function App() {
                     </p>
 
                     <p className="mt-1 text-xs font-medium text-white">
-                      {previewItem.params.aspectRatio}
+                      {
+                        previewItem
+                          .params
+                          .aspectRatio
+                      }
                     </p>
                   </div>
                 </div>
@@ -1173,7 +1595,11 @@ function App() {
                 <div className="mt-6 space-y-2">
                   <button
                     type="button"
-                    onClick={() => openUpscale(previewItem)}
+                    onClick={() =>
+                      openUpscale(
+                        previewItem
+                      )
+                    }
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500"
                   >
                     <WandSparkles size={16} />
@@ -1183,7 +1609,9 @@ function App() {
                   <button
                     type="button"
                     onClick={() =>
-                      handleCreateVariation(previewItem)
+                      handleCreateVariation(
+                        previewItem
+                      )
                     }
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-dark-border bg-dark-surface px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-dark-card hover:text-white"
                   >
@@ -1193,7 +1621,11 @@ function App() {
 
                   <button
                     type="button"
-                    onClick={() => handleDownload(previewItem)}
+                    onClick={() =>
+                      handleDownload(
+                        previewItem
+                      )
+                    }
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-dark-border bg-dark-surface px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-dark-card hover:text-white"
                   >
                     <Download size={16} />
@@ -1203,7 +1635,9 @@ function App() {
                   <button
                     type="button"
                     onClick={() =>
-                      studio.toggleLike(previewItem.id)
+                      studio.toggleLike(
+                        previewItem.id
+                      )
                     }
                     className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
                       previewItem.liked
@@ -1211,7 +1645,9 @@ function App() {
                         : 'border-dark-border bg-dark-surface text-slate-300 hover:text-white'
                     }`}
                   >
-                    {previewItem.liked && <Check size={16} />}
+                    {previewItem.liked && (
+                      <Check size={16} />
+                    )}
 
                     {previewItem.liked
                       ? 'Saved to favorites'
@@ -1220,7 +1656,11 @@ function App() {
 
                   <button
                     type="button"
-                    onClick={() => handleDelete(previewItem)}
+                    onClick={() =>
+                      handleDelete(
+                        previewItem
+                      )
+                    }
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
                   >
                     <Trash2 size={16} />
@@ -1239,36 +1679,45 @@ function App() {
                       ['Review', true],
                       ['Enhance', true],
                       ['Publish', false],
-                    ].map(([label, done]) => (
-                      <div
-                        key={label as string}
-                        className="flex items-center gap-3"
-                      >
+                    ].map(
+                      ([
+                        label,
+                        done,
+                      ]) => (
                         <div
-                          className={`flex h-6 w-6 items-center justify-center rounded-full ${
-                            done
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : 'bg-dark-surface text-slate-600'
-                          }`}
+                          key={
+                            label as string
+                          }
+                          className="flex items-center gap-3"
                         >
-                          {done ? (
-                            <Check size={12} />
-                          ) : (
-                            <div className="h-1.5 w-1.5 rounded-full bg-current" />
-                          )}
-                        </div>
+                          <div
+                            className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                              done
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : 'bg-dark-surface text-slate-600'
+                            }`}
+                          >
+                            {done ? (
+                              <Check size={12} />
+                            ) : (
+                              <div className="h-1.5 w-1.5 rounded-full bg-current" />
+                            )}
+                          </div>
 
-                        <span
-                          className={`text-xs ${
-                            done
-                              ? 'text-slate-300'
-                              : 'text-slate-600'
-                          }`}
-                        >
-                          {label as string}
-                        </span>
-                      </div>
-                    ))}
+                          <span
+                            className={`text-xs ${
+                              done
+                                ? 'text-slate-300'
+                                : 'text-slate-600'
+                            }`}
+                          >
+                            {
+                              label as string
+                            }
+                          </span>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -1277,19 +1726,28 @@ function App() {
         </div>
       )}
 
-      {/* Pro Plan Modal */}
+      {/* ====================================================== */}
+      {/* PRO PLAN MODAL */}
+      {/* ====================================================== */}
+
       {showProPlan && (
         <div
           className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
-          onClick={() => setShowProPlan(false)}
+          onClick={() =>
+            setShowProPlan(false)
+          }
         >
           <div
             className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0b0c0f] p-6 shadow-2xl"
-            onClick={event => event.stopPropagation()}
+            onClick={event =>
+              event.stopPropagation()
+            }
           >
             <button
               type="button"
-              onClick={() => setShowProPlan(false)}
+              onClick={() =>
+                setShowProPlan(false)
+              }
               className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-white"
             >
               <X size={17} />
@@ -1322,7 +1780,9 @@ function App() {
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/5">
                 <div
                   className="h-full rounded-full bg-brand-500"
-                  style={{ width: '63%' }}
+                  style={{
+                    width: '63%',
+                  }}
                 />
               </div>
             </div>
@@ -1350,7 +1810,9 @@ function App() {
 
             <button
               type="button"
-              onClick={() => setShowProPlan(false)}
+              onClick={() =>
+                setShowProPlan(false)
+              }
               className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500"
             >
               <Crown size={16} />
