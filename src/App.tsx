@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Check,
   ChevronRight,
+  Crown,
   Download,
   Expand,
   Film,
@@ -12,13 +13,13 @@ import {
   RotateCcw,
   Settings2,
   ShoppingBag,
+  Share2,
   Sparkles,
   Trash2,
   UserRound,
   WandSparkles,
   X,
   Zap,
-  Share2,
 } from 'lucide-react';
 
 import { Sidebar } from './components/Sidebar';
@@ -34,9 +35,9 @@ function App() {
 
   const [previewItem, setPreviewItem] = useState<PreviewItem | null>(null);
   const [upscaleItem, setUpscaleItem] = useState<PreviewItem | null>(null);
-
   const [enhancing, setEnhancing] = useState(false);
   const [enhanced, setEnhanced] = useState(false);
+  const [showProPlan, setShowProPlan] = useState(false);
 
   const selectedUpscale = upscaleItem || studio.currentResult;
 
@@ -60,6 +61,17 @@ function App() {
 
   const closePreview = () => {
     setPreviewItem(null);
+  };
+
+  const handleNewGeneration = () => {
+    studio.cancelGeneration();
+    studio.setPrompt('');
+    studio.setNavSection('cinema');
+
+    setPreviewItem(null);
+    setUpscaleItem(null);
+    setEnhancing(false);
+    setEnhanced(false);
   };
 
   const openUpscale = (item: PreviewItem) => {
@@ -108,7 +120,7 @@ function App() {
   const renderCinemaStudio = () => {
     return (
       <div className="min-h-screen">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-dark-border bg-dark-bg/95 px-6 backdrop-blur">
+        <header className="sticky top-0 z-[60] flex h-16 items-center justify-between border-b border-dark-border bg-dark-bg/95 px-6 backdrop-blur">
           <div>
             <p className="text-xs text-slate-500">Workspace</p>
             <h1 className="text-lg font-semibold text-white">
@@ -116,25 +128,33 @@ function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden rounded-lg border border-dark-border bg-dark-card px-3 py-2 sm:block">
+          <div className="relative z-[100] flex items-center gap-3 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => setShowProPlan(true)}
+              className="hidden cursor-pointer items-center rounded-lg border border-dark-border bg-dark-card px-3 py-2 text-left transition hover:border-brand-500/40 hover:bg-brand-500/5 sm:flex"
+            >
               <div className="flex items-center gap-2">
                 <Zap size={14} className="text-brand-400" />
+
                 <span className="text-xs font-medium text-white">
                   Pro Plan
                 </span>
+
                 <span className="text-xs text-slate-500">
                   630 / 1000 credits
                 </span>
               </div>
-            </div>
+            </button>
 
             <button
-              onClick={() => {
-                studio.setPrompt('');
-                studio.setNavSection('cinema');
+              type="button"
+              onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleNewGeneration();
               }}
-              className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-500"
+              className="relative z-[100] flex cursor-pointer items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-500 active:scale-[0.98]"
             >
               <Plus size={16} />
               New generation
@@ -176,7 +196,10 @@ function App() {
                   <span className="text-xs font-semibold text-brand-400">
                     {number}
                   </span>
-                  <ChevronRight size={14} className="text-slate-600" />
+                  <ChevronRight
+                    size={14}
+                    className="text-slate-600"
+                  />
                 </div>
 
                 <p className="text-sm font-semibold text-white">
@@ -198,6 +221,7 @@ function App() {
                     <h3 className="text-sm font-semibold text-white">
                       Preview
                     </h3>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Your latest generation
                     </p>
@@ -217,7 +241,9 @@ function App() {
                     <button
                       type="button"
                       onClick={() =>
-                        openPreview(studio.currentResult as PreviewItem)
+                        openPreview(
+                          studio.currentResult as PreviewItem
+                        )
                       }
                       className="group relative block h-full min-h-[390px] w-full"
                     >
@@ -235,6 +261,7 @@ function App() {
                           <p className="text-sm font-medium text-white">
                             {studio.currentResult.title}
                           </p>
+
                           <p className="mt-1 text-xs text-slate-300">
                             Click to inspect
                           </p>
@@ -248,7 +275,10 @@ function App() {
                   ) : (
                     <div className="flex min-h-[390px] flex-col items-center justify-center px-6 text-center">
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-dark-border bg-dark-surface">
-                        <Film size={24} className="text-slate-500" />
+                        <Film
+                          size={24}
+                          className="text-slate-500"
+                        />
                       </div>
 
                       <h3 className="text-sm font-semibold text-white">
@@ -256,8 +286,8 @@ function App() {
                       </h3>
 
                       <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
-                        Describe a scene, select your settings and generate
-                        your first cinematic result.
+                        Describe a scene, select your settings and
+                        generate your first cinematic result.
                       </p>
                     </div>
                   )}
@@ -270,6 +300,7 @@ function App() {
                             <p className="text-sm font-semibold text-white">
                               Creating your scene
                             </p>
+
                             <p className="mt-1 text-xs text-slate-500">
                               Rendering with{' '}
                               {activeModel?.name || 'AI model'}
@@ -307,7 +338,9 @@ function App() {
                 prompt={studio.params.prompt}
                 onPromptChange={studio.setPrompt}
                 negativePrompt={studio.params.negativePrompt}
-                onNegativePromptChange={studio.setNegativePrompt}
+                onNegativePromptChange={
+                  studio.setNegativePrompt
+                }
                 enhance={studio.params.enhance}
                 onEnhanceToggle={studio.setEnhance}
                 activeStyle={studio.params.stylePreset}
@@ -321,12 +354,16 @@ function App() {
                     <h3 className="text-sm font-semibold text-white">
                       Generation settings
                     </h3>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Fine-tune the output before rendering.
                     </p>
                   </div>
 
-                  <Settings2 size={18} className="text-slate-500" />
+                  <Settings2
+                    size={18}
+                    className="text-slate-500"
+                  />
                 </div>
 
                 <div className="mb-5">
@@ -374,6 +411,7 @@ function App() {
                 <div className="mt-6 flex items-center gap-3">
                   {studio.status === 'generating' ? (
                     <button
+                      type="button"
                       onClick={studio.cancelGeneration}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/15"
                     >
@@ -382,6 +420,7 @@ function App() {
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={studio.generate}
                       disabled={!studio.params.prompt.trim()}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-40"
@@ -400,6 +439,7 @@ function App() {
                   <h3 className="text-sm font-semibold text-white">
                     Quick start
                   </h3>
+
                   <p className="mt-1 text-xs text-slate-500">
                     Start from a creative direction.
                   </p>
@@ -421,6 +461,7 @@ function App() {
                     ],
                   ].map(([title, prompt]) => (
                     <button
+                      type="button"
                       key={title}
                       onClick={() => studio.setPrompt(prompt)}
                       className="flex w-full items-center justify-between rounded-xl border border-dark-border bg-dark-surface px-3 py-3 text-left transition hover:border-brand-500/40 hover:bg-brand-500/5"
@@ -429,6 +470,7 @@ function App() {
                         <p className="text-xs font-medium text-white">
                           {title}
                         </p>
+
                         <p className="mt-1 line-clamp-1 text-[10px] text-slate-500">
                           {prompt}
                         </p>
@@ -449,12 +491,14 @@ function App() {
                     <h3 className="text-sm font-semibold text-white">
                       Recent creations
                     </h3>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Continue where you left off.
                     </p>
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => studio.setNavSection('gallery')}
                     className="text-xs font-medium text-brand-400 hover:text-brand-300"
                   >
@@ -466,12 +510,15 @@ function App() {
                   <div className="grid grid-cols-2 gap-2">
                     {studio.history.slice(0, 4).map(item => (
                       <button
+                        type="button"
                         key={item.id}
                         onClick={() => openPreview(item)}
                         className="group relative aspect-square overflow-hidden rounded-xl border border-dark-border bg-dark-surface"
                       >
                         <img
-                          src={item.thumbnailUrl || item.mediaUrl}
+                          src={
+                            item.thumbnailUrl || item.mediaUrl
+                          }
                           alt={item.title}
                           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                         />
@@ -492,6 +539,7 @@ function App() {
                       size={22}
                       className="mx-auto text-slate-600"
                     />
+
                     <p className="mt-2 text-xs text-slate-500">
                       No creations yet.
                     </p>
@@ -531,11 +579,14 @@ function App() {
       <div className="min-h-screen">
         <header className="border-b border-dark-border px-6 py-5">
           <p className="text-xs text-slate-500">Workspace</p>
+
           <h1 className="mt-1 text-xl font-semibold text-white">
             Marketing Studio
           </h1>
+
           <p className="mt-2 max-w-2xl text-sm text-slate-500">
-            Turn a campaign idea into a visual direction in a few steps.
+            Turn a campaign idea into a visual direction in a few
+            steps.
           </p>
         </header>
 
@@ -546,11 +597,13 @@ function App() {
 
               return (
                 <button
+                  type="button"
                   key={card.title}
                   onClick={() => {
                     studio.setPrompt(
                       `Create a premium ${card.title.toLowerCase()} concept with polished commercial lighting, strong composition and a modern visual identity.`
                     );
+
                     studio.setNavSection('cinema');
                   }}
                   className="group rounded-2xl border border-dark-border bg-dark-card p-6 text-left transition hover:-translate-y-0.5 hover:border-brand-500/40"
@@ -585,11 +638,14 @@ function App() {
       <div className="min-h-screen">
         <header className="border-b border-dark-border px-6 py-5">
           <p className="text-xs text-slate-500">Identity</p>
+
           <h1 className="mt-1 text-xl font-semibold text-white">
             Soul ID
           </h1>
+
           <p className="mt-2 text-sm text-slate-500">
-            Keep a consistent creative identity across your generations.
+            Keep a consistent creative identity across your
+            generations.
           </p>
         </header>
 
@@ -604,13 +660,15 @@ function App() {
                 <h2 className="text-lg font-semibold text-white">
                   Create your creative identity
                 </h2>
+
                 <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
-                  Define a consistent visual profile that can be reused
-                  across future generations.
+                  Define a consistent visual profile that can be
+                  reused across future generations.
                 </p>
               </div>
 
               <button
+                type="button"
                 onClick={() => studio.setNavSection('cinema')}
                 className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
               >
@@ -631,6 +689,7 @@ function App() {
                   <p className="text-sm font-medium text-white">
                     {title}
                   </p>
+
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     {description}
                   </p>
@@ -650,9 +709,11 @@ function App() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500">Library</p>
+
               <h1 className="mt-1 text-xl font-semibold text-white">
                 Gallery
               </h1>
+
               <p className="mt-2 text-sm text-slate-500">
                 Browse and refine your previous generations.
               </p>
@@ -669,13 +730,16 @@ function App() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {studio.history.map(item => (
                 <button
+                  type="button"
                   key={item.id}
                   onClick={() => openPreview(item)}
                   className="group relative overflow-hidden rounded-2xl border border-dark-border bg-dark-card text-left"
                 >
                   <div className="aspect-square overflow-hidden bg-black">
                     <img
-                      src={item.thumbnailUrl || item.mediaUrl}
+                      src={
+                        item.thumbnailUrl || item.mediaUrl
+                      }
                       alt={item.title}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
@@ -699,15 +763,21 @@ function App() {
             </div>
           ) : (
             <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-dark-border">
-              <Images size={30} className="text-slate-600" />
+              <Images
+                size={30}
+                className="text-slate-600"
+              />
+
               <h2 className="mt-4 text-sm font-semibold text-white">
                 Your gallery is empty
               </h2>
+
               <p className="mt-2 text-xs text-slate-500">
                 Generate something in Cinema Studio to see it here.
               </p>
 
               <button
+                type="button"
                 onClick={() => studio.setNavSection('cinema')}
                 className="mt-5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
               >
@@ -725,29 +795,36 @@ function App() {
       <div className="min-h-screen">
         <header className="border-b border-dark-border px-6 py-5">
           <p className="text-xs text-slate-500">Enhancement</p>
+
           <h1 className="mt-1 text-xl font-semibold text-white">
             Upscale
           </h1>
+
           <p className="mt-2 text-sm text-slate-500">
-            Refine the resolution and presentation of your final image.
+            Refine the resolution and presentation of your final
+            image.
           </p>
         </header>
 
         <main className="mx-auto max-w-6xl px-6 py-8">
           {!selectedUpscale ? (
             <div className="flex min-h-[450px] flex-col items-center justify-center rounded-2xl border border-dashed border-dark-border">
-              <WandSparkles size={32} className="text-slate-600" />
+              <WandSparkles
+                size={32}
+                className="text-slate-600"
+              />
 
               <h2 className="mt-4 text-sm font-semibold text-white">
                 Select an image to enhance
               </h2>
 
               <p className="mt-2 max-w-sm text-center text-xs leading-5 text-slate-500">
-                Open an image from your Gallery and choose Upscale, or
-                generate a new image first.
+                Open an image from your Gallery and choose Upscale,
+                or generate a new image first.
               </p>
 
               <button
+                type="button"
                 onClick={() => studio.setNavSection('gallery')}
                 className="mt-5 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
               >
@@ -793,7 +870,8 @@ function App() {
                         selectedUpscale.thumbnailUrl &&
                         image.src !== selectedUpscale.thumbnailUrl
                       ) {
-                        image.src = selectedUpscale.thumbnailUrl;
+                        image.src =
+                          selectedUpscale.thumbnailUrl;
                       }
                     }}
                   />
@@ -838,6 +916,7 @@ function App() {
                     <h2 className="text-sm font-semibold text-white">
                       Enhancement settings
                     </h2>
+
                     <p className="mt-1 text-xs leading-5 text-slate-500">
                       Configure the final output.
                     </p>
@@ -850,19 +929,27 @@ function App() {
                       </label>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <button className="rounded-xl border border-brand-500/40 bg-brand-500/10 px-3 py-3 text-left">
+                        <button
+                          type="button"
+                          className="rounded-xl border border-brand-500/40 bg-brand-500/10 px-3 py-3 text-left"
+                        >
                           <p className="text-xs font-semibold text-white">
                             2×
                           </p>
+
                           <p className="mt-1 text-[10px] text-brand-300">
                             Recommended
                           </p>
                         </button>
 
-                        <button className="rounded-xl border border-dark-border bg-dark-surface px-3 py-3 text-left transition hover:border-slate-600">
+                        <button
+                          type="button"
+                          className="rounded-xl border border-dark-border bg-dark-surface px-3 py-3 text-left transition hover:border-slate-600"
+                        >
                           <p className="text-xs font-semibold text-white">
                             4×
                           </p>
+
                           <p className="mt-1 text-[10px] text-slate-500">
                             Maximum detail
                           </p>
@@ -902,13 +989,17 @@ function App() {
                   </div>
 
                   <button
+                    type="button"
                     onClick={handleEnhance}
                     disabled={enhancing}
                     className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {enhancing ? (
                       <>
-                        <RefreshCw size={16} className="animate-spin" />
+                        <RefreshCw
+                          size={16}
+                          className="animate-spin"
+                        />
                         Enhancing...
                       </>
                     ) : enhanced ? (
@@ -952,6 +1043,7 @@ function App() {
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => openPreview(selectedUpscale)}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-dark-border px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-dark-surface hover:text-white"
                   >
@@ -993,7 +1085,9 @@ function App() {
         active={studio.navSection}
         onChange={studio.setNavSection}
         open={studio.sidebarOpen}
-        onToggle={() => studio.setSidebarOpen(!studio.sidebarOpen)}
+        onToggle={() =>
+          studio.setSidebarOpen(!studio.sidebarOpen)
+        }
         historyCount={studio.history.length}
       />
 
@@ -1005,10 +1099,12 @@ function App() {
         {renderSection()}
       </main>
 
+      {/* Preview Modal */}
       {previewItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
           <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0c0f] shadow-2xl lg:flex-row">
             <button
+              type="button"
               onClick={closePreview}
               className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-lg bg-black/60 text-slate-300 backdrop-blur transition hover:text-white"
             >
@@ -1017,7 +1113,10 @@ function App() {
 
             <div className="relative flex min-h-[380px] flex-1 items-center justify-center bg-black p-5 lg:min-h-[650px]">
               <img
-                src={previewItem.mediaUrl || previewItem.thumbnailUrl}
+                src={
+                  previewItem.mediaUrl ||
+                  previewItem.thumbnailUrl
+                }
                 alt={previewItem.title}
                 className="max-h-[78vh] max-w-full rounded-lg object-contain"
                 onError={event => {
@@ -1054,6 +1153,7 @@ function App() {
                     <p className="text-[10px] text-slate-500">
                       Model
                     </p>
+
                     <p className="mt-1 truncate text-xs font-medium text-white">
                       {previewItem.params.modelId}
                     </p>
@@ -1063,6 +1163,7 @@ function App() {
                     <p className="text-[10px] text-slate-500">
                       Ratio
                     </p>
+
                     <p className="mt-1 text-xs font-medium text-white">
                       {previewItem.params.aspectRatio}
                     </p>
@@ -1071,6 +1172,7 @@ function App() {
 
                 <div className="mt-6 space-y-2">
                   <button
+                    type="button"
                     onClick={() => openUpscale(previewItem)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500"
                   >
@@ -1079,7 +1181,10 @@ function App() {
                   </button>
 
                   <button
-                    onClick={() => handleCreateVariation(previewItem)}
+                    type="button"
+                    onClick={() =>
+                      handleCreateVariation(previewItem)
+                    }
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-dark-border bg-dark-surface px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-dark-card hover:text-white"
                   >
                     <RotateCcw size={16} />
@@ -1087,6 +1192,7 @@ function App() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleDownload(previewItem)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-dark-border bg-dark-surface px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-dark-card hover:text-white"
                   >
@@ -1095,7 +1201,10 @@ function App() {
                   </button>
 
                   <button
-                    onClick={() => studio.toggleLike(previewItem.id)}
+                    type="button"
+                    onClick={() =>
+                      studio.toggleLike(previewItem.id)
+                    }
                     className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
                       previewItem.liked
                         ? 'border-brand-500/30 bg-brand-500/10 text-brand-400'
@@ -1103,12 +1212,14 @@ function App() {
                     }`}
                   >
                     {previewItem.liked && <Check size={16} />}
+
                     {previewItem.liked
                       ? 'Saved to favorites'
                       : 'Save to favorites'}
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => handleDelete(previewItem)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
                   >
@@ -1162,6 +1273,89 @@ function App() {
                 </div>
               </div>
             </aside>
+          </div>
+        </div>
+      )}
+
+      {/* Pro Plan Modal */}
+      {showProPlan && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+          onClick={() => setShowProPlan(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0b0c0f] p-6 shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowProPlan(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-white"
+            >
+              <X size={17} />
+            </button>
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400">
+              <Crown size={23} />
+            </div>
+
+            <h2 className="mt-5 text-xl font-semibold text-white">
+              Pro Plan
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Unlock more creative generations, higher quality
+              outputs and additional studio capabilities.
+            </p>
+
+            <div className="mt-6 rounded-xl border border-dark-border bg-dark-surface p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">
+                  Current credits
+                </span>
+
+                <span className="text-sm font-semibold text-white">
+                  630 / 1000
+                </span>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-brand-500"
+                  style={{ width: '63%' }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {[
+                'Higher generation limits',
+                'Premium AI models',
+                'Advanced enhancement tools',
+              ].map(feature => (
+                <div
+                  key={feature}
+                  className="flex items-center gap-3"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400">
+                    <Check size={13} />
+                  </div>
+
+                  <span className="text-sm text-slate-300">
+                    {feature}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowProPlan(false)}
+              className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500"
+            >
+              <Crown size={16} />
+              Continue with Pro
+            </button>
           </div>
         </div>
       )}

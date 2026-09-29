@@ -1,101 +1,146 @@
 import {
-  Clapperboard, Megaphone, UserCircle2, Image, Sparkles,
-  ChevronLeft, ChevronRight, LayoutGrid, Wand2,
+  Film,
+  Megaphone,
+  UserRound,
+  Images,
+  WandSparkles,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import type { NavSection } from '../types';
-import { cn } from './ui';
 
-interface Props {
+type NavSection = 'cinema' | 'marketing' | 'soul-id' | 'gallery' | 'upscale';
+
+type Props = {
   active: NavSection;
-  onChange: (s: NavSection) => void;
+  onChange: (section: NavSection) => void;
   open: boolean;
   onToggle: () => void;
   historyCount: number;
-}
+};
 
-const ITEMS: { id: NavSection; icon: typeof Clapperboard; label: string; badge?: string }[] = [
-  { id: 'cinema',    icon: Clapperboard, label: 'Cinema Studio' },
-  { id: 'marketing', icon: Megaphone,    label: 'Marketing' },
-  { id: 'soul-id',   icon: UserCircle2,  label: 'Soul ID' },
-  { id: 'gallery',   icon: LayoutGrid,   label: 'Gallery',  badge: '8' },
-  { id: 'upscale',   icon: Wand2,        label: 'Upscale' },
+const items = [
+  {
+    id: 'cinema' as const,
+    label: 'Cinema Studio',
+    icon: Film,
+  },
+  {
+    id: 'marketing' as const,
+    label: 'Marketing',
+    icon: Megaphone,
+  },
+  {
+    id: 'soul-id' as const,
+    label: 'Soul ID',
+    icon: UserRound,
+  },
+  {
+    id: 'gallery' as const,
+    label: 'Gallery',
+    icon: Images,
+  },
+  {
+    id: 'upscale' as const,
+    label: 'Upscale',
+    icon: WandSparkles,
+  },
 ];
 
-export function Sidebar({ active, onChange, open, onToggle, historyCount }: Props) {
+export function Sidebar({
+  active,
+  onChange,
+  open,
+  onToggle,
+  historyCount,
+}: Props) {
   return (
-    <aside className={cn(
-      'relative flex flex-col flex-shrink-0 bg-dark-surface border-r border-dark-border transition-all duration-300 overflow-hidden',
-      open ? 'w-[200px]' : 'w-[56px]'
-    )}>
-      {/* Logo area */}
-      <div className="flex items-center gap-2.5 px-3 py-4 border-b border-dark-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shadow-glow-sm flex-shrink-0">
-          <Image className="w-4 h-4 text-white" />
+    <aside
+      className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-dark-border bg-dark-bg transition-all duration-200 ${
+        open ? 'w-64' : 'w-20'
+      }`}
+    >
+      {/* Logo */}
+      <div className="flex h-16 shrink-0 items-center border-b border-dark-border px-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600">
+          <span className="text-sm font-bold text-white">H</span>
         </div>
+
         {open && (
-          <div className="overflow-hidden">
-            <p className="text-sm font-bold text-white leading-none tracking-tight whitespace-nowrap">Higgsfield</p>
-            <p className="text-[10px] text-brand-400 font-medium leading-none mt-0.5 whitespace-nowrap">Studio Pro</p>
+          <div className="ml-3 min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
+              Higgsfield
+            </p>
+            <p className="text-[10px] text-dark-muted">Studio Pro</p>
           </div>
         )}
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 py-3 space-y-0.5 px-2">
-        {ITEMS.map(({ id, icon: Icon, label, badge }) => {
-          const isActive = active === id;
-          const count = id === 'gallery' ? historyCount : undefined;
-          return (
-            <button
-              key={id}
-              onClick={() => onChange(id)}
-              title={!open ? label : undefined}
-              className={cn(
-                'w-full flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm font-medium transition-all duration-150 group relative',
-                isActive
-                  ? 'bg-brand-600/15 text-brand-400 border border-brand-600/30'
-                  : 'text-dark-muted hover:bg-dark-card hover:text-slate-300 border border-transparent'
-              )}
-            >
-              <Icon className={cn('w-4 h-4 flex-shrink-0', isActive ? 'text-brand-400' : 'text-dark-muted group-hover:text-slate-400')} />
-              {open && (
-                <>
-                  <span className="flex-1 text-left truncate leading-none">{label}</span>
-                  {count !== undefined && (
-                    <span className="text-[10px] font-semibold bg-brand-600/30 text-brand-400 rounded-full px-1.5 py-0.5 min-w-[20px] text-center leading-none">
-                      {count}
-                    </span>
-                  )}
-                </>
-              )}
-              {/* Active indicator line */}
-              {isActive && <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-brand-500 rounded-full" />}
-            </button>
-          );
-        })}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-5">
+        <p
+          className={`mb-3 px-2 text-[10px] font-semibold uppercase tracking-wider text-dark-muted ${
+            !open ? 'text-center' : ''
+          }`}
+        >
+          {open ? 'Create' : '•••'}
+        </p>
+
+        <div className="space-y-1">
+          {items.map(item => {
+            const Icon = item.icon;
+            const isActive = active === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => onChange(item.id)}
+                title={!open ? item.label : undefined}
+                className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left transition ${
+                  isActive
+                    ? 'bg-brand-600/15 text-brand-400'
+                    : 'text-slate-400 hover:bg-dark-surface hover:text-white'
+                } ${!open ? 'justify-center' : ''}`}
+              >
+                <Icon
+                  size={18}
+                  strokeWidth={1.8}
+                  className="shrink-0"
+                />
+
+                {open && (
+                  <span className="ml-3 flex-1 text-sm font-medium">
+                    {item.label}
+                  </span>
+                )}
+
+                {open && item.id === 'gallery' && historyCount > 0 && (
+                  <span className="rounded-full bg-dark-card px-2 py-0.5 text-[10px] text-dark-muted">
+                    {historyCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* Plan info */}
-      {open && (
-        <div className="m-2 p-2.5 rounded-lg bg-brand-600/10 border border-brand-600/20">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Sparkles className="w-3 h-3 text-brand-400" />
-            <span className="text-[11px] font-semibold text-brand-400">Pro Plan</span>
-          </div>
-          <div className="w-full h-1 rounded-full bg-dark-border overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-brand-600 to-brand-400 rounded-full" style={{ width: '63%' }} />
-          </div>
-          <p className="text-[10px] text-dark-muted mt-1">630 / 1000 credits</p>
-        </div>
-      )}
-
-      {/* Collapse toggle */}
-      <button
-        onClick={onToggle}
-        className="absolute top-1/2 -right-3 z-10 w-6 h-6 rounded-full bg-dark-card border border-dark-border flex items-center justify-center text-dark-muted hover:text-slate-300 hover:bg-dark-cardHover transition-all shadow-md"
-      >
-        {open ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-      </button>
+      {/* Bottom */}
+      <div className="shrink-0 border-t border-dark-border p-3">
+        <button
+          onClick={onToggle}
+          className="flex w-full items-center justify-center rounded-lg p-2.5 text-dark-muted transition hover:bg-dark-surface hover:text-white"
+          title={open ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+          {open ? (
+            <>
+              <ChevronLeft size={18} />
+              <span className="ml-2 text-xs">Collapse</span>
+            </>
+          ) : (
+            <ChevronRight size={18} />
+          )}
+        </button>
+      </div>
     </aside>
   );
 }
